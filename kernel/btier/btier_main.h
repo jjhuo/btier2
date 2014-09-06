@@ -15,15 +15,3 @@ static void reset_counters_on_migration(struct tier_device *,
 					struct blockinfo *);
 static void tiererror(struct tier_device *, char *);
 static int get_chunksize(struct block_device *);
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,0,0)
-#define vzalloc xzalloc
-void *xzalloc(size_t size)
-{
-	void *retval;
-
-	retval = vmalloc(size);
-	if (retval)
-		memset(retval, 0, size);
-	return retval;
-}
-#endif

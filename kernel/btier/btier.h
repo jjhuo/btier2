@@ -265,12 +265,12 @@ struct tier_device {
 	unsigned int commit_interval;
 	int barrier;
 	int stop;
-/*Holds the type of IO random or sequential*/
+	/*Holds the type of IO random or sequential*/
 	int iotype;
-/*Last blocknr written or read*/
+	/*Last blocknr written or read*/
 	u64 lastblocknr;
 	u64 resumeblockwalk;
-/*Incremented if current blocknr == lastblocknr -1 or +1 */
+	/*Incremented if current blocknr == lastblocknr -1 or +1 */
 	unsigned int insequence;
 	u64 cacheentries;
 	struct mutex qlock;
@@ -285,9 +285,9 @@ struct tier_device {
 	int discard_to_devices;
 	int discard;
 	int writethrough;
-/* Where do we initially store sequential IO */
+	/* Where do we initially store sequential IO */
 	int inerror;
-/* The blocknr that the user can retrieve info for via sysfs*/
+	/* The blocknr that the user can retrieve info for via sysfs*/
 	u64 user_selected_blockinfo;
 	int user_selected_ispaged;
 	unsigned int users;
