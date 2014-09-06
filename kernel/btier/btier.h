@@ -187,7 +187,6 @@ struct bio_task {
 	atomic_t pending;
 	struct bio *parent_bio;
 	struct tier_device *dev;
-	int vfs;
         int in_one;
 };
 
@@ -291,7 +290,6 @@ struct tier_device {
 	u64 user_selected_blockinfo;
 	int user_selected_ispaged;
 	unsigned int users;
-	int use_bio;
 	char zero_buf[PAGE_SIZE];
 };
 
