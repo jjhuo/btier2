@@ -1,0 +1,396 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ALLOCATED	.\btier.h	95;"	d
+BIOREAD	.\btier.h	/^	BIOREAD = 1,$/;"	e	enum:states
+BIOWRITE	.\btier.h	/^	BIOWRITE = 8,$/;"	e	enum:states
+BLKBITS	.\btier.h	54;"	d
+BLKSIZE	.\btier.h	52;"	d
+BTIER_MAX_DEVS	.\btier.h	73;"	d
+BTIER_MAX_INFLIGHT	.\btier.h	74;"	d
+CLEAN	.\btier.h	88;"	d
+DIRTY	.\btier.h	89;"	d
+DIS	.\btier.h	93;"	d
+DISCARD	.\btier.h	/^	DISCARD = 512$/;"	e	enum:states
+EST	.\btier.h	92;"	d
+FALSE	.\btier_main.c	17;"	d	file:
+FSMODE	.\btier.h	104;"	d
+IDLE	.\btier.h	/^	IDLE = 0,$/;"	e	enum:states
+KERNEL_SECTORSIZE	.\btier.h	80;"	d
+MASTER	.\btier.h	90;"	d
+MAXPAGESHOW	.\btier.h	97;"	d
+MAX_BACKING_DEV	.\btier.h	81;"	d
+MAX_STAT_COUNT	.\btier.h	120;"	d
+MAX_STAT_DECAY	.\btier.h	121;"	d
+MIGRATE_INTERVAL	.\btier.h	110;"	d
+MIGRATION_IO	.\btier.h	86;"	d
+NORMAL_IO	.\btier.h	85;"	d
+PAGE_SHIFT	.\btier.h	55;"	d
+PREALLOCBLOCK	.\btier.h	/^	PREALLOCBLOCK = 128,$/;"	e	enum:states
+PREBINFO	.\btier.h	/^	PREBINFO = 64,$/;"	e	enum:states
+PRESYNC	.\btier.h	/^	PRESYNC = 32,$/;"	e	enum:states
+RANDOM	.\btier.h	78;"	d
+SEQUENTIAL	.\btier.h	79;"	d
+SLAVE	.\btier.h	91;"	d
+TIERHITCOLLECTTIME	.\btier.h	108;"	d
+TIERMAXAGE	.\btier.h	106;"	d
+TIERREAD	.\btier.h	102;"	d
+TIERWRITE	.\btier.h	103;"	d
+TIER_ATTR_RO	.\btier_sysfs.c	59;"	d	file:
+TIER_ATTR_RW	.\btier_sysfs.c	85;"	d	file:
+TIER_ATTR_WO	.\btier_sysfs.c	75;"	d	file:
+TIER_BARRIER	.\btier.h	62;"	d
+TIER_CACHESIZE	.\btier.h	63;"	d
+TIER_DEREGISTER	.\btier.h	60;"	d
+TIER_DEVICE_BIT_MAGIC	.\btier.h	66;"	d
+TIER_DEVICE_BLOCK_MAGIC	.\btier.h	67;"	d
+TIER_DEVICE_PLAYGROUND	.\btier.h	83;"	d
+TIER_HEADERSIZE	.\btier.h	65;"	d
+TIER_INIT	.\btier.h	61;"	d
+TIER_NAME_SIZE	.\btier.h	56;"	d
+TIER_REGISTER	.\btier.h	59;"	d
+TIER_SET_DEVSZ	.\btier.h	58;"	d
+TIER_SET_FD	.\btier.h	57;"	d
+TIER_SET_SECTORSIZE	.\btier.h	64;"	d
+TIER_VERSION	.\btier_main.c	18;"	d	file:
+TIGER_HASH_LEN	.\btier.h	76;"	d
+TRUE	.\btier_main.c	16;"	d	file:
+UNALLOCATED	.\btier.h	96;"	d
+USE_BIO	.\btier.h	99;"	d
+USE_VFS	.\btier.h	100;"	d
+VFSREAD	.\btier.h	/^	VFSREAD = 2,$/;"	e	enum:states
+VFSWRITE	.\btier.h	/^	VFSWRITE = 4,$/;"	e	enum:states
+WA	.\btier.h	71;"	d
+WAITAIOPENDING	.\btier.h	/^	WAITAIOPENDING = 16,$/;"	e	enum:states
+WC	.\btier.h	70;"	d
+WD	.\btier.h	69;"	d
+__udivdi3	.\btier_common.c	/^u64 __udivdi3(u64 num, u64 den)$/;"	f
+__udivmoddi4	.\btier_common.c	/^u64 __udivmoddi4(u64 num, u64 den, u64 * rem_p)$/;"	f
+__umoddi3	.\btier_common.c	/^u64 __umoddi3(u64 num, u64 den)$/;"	f
+_tier_ctl_fops	.\btier_main.c	/^static const struct file_operations _tier_ctl_fops = {$/;"	v	typeref:struct:file_operations	file:
+_tier_misc	.\btier_main.c	/^static struct miscdevice _tier_misc = {$/;"	v	typeref:struct:miscdevice	file:
+active	.\btier.h	/^	int active;$/;"	m	struct:tier_device
+aio_event	.\btier.h	/^	wait_queue_head_t aio_event;$/;"	m	struct:tier_device
+aio_pending	.\btier.h	/^	atomic_t aio_pending;$/;"	m	struct:tier_device
+aio_queue	.\btier.h	/^	struct workqueue_struct *aio_queue;	\/* Async IO *\/$/;"	m	struct:tier_device	typeref:struct:tier_device::workqueue_struct
+aio_reader	.\btier_main.c	/^static void aio_reader(struct work_struct *work)$/;"	f	file:
+aio_work_t	.\btier.h	/^} aio_work_t;$/;"	t	typeref:struct:__anon3
+aioname	.\btier.h	/^	char *aioname;$/;"	m	struct:tier_device
+allocate_block	.\btier_main.c	/^static int allocate_block(struct tier_device *dev, u64 blocknr,$/;"	f	file:
+allocate_dev	.\btier_main.c	/^static int allocate_dev(struct tier_device *dev, u64 blocknr,$/;"	f	file:
+allocated_on_device	.\btier_main.c	/^u64 allocated_on_device(struct tier_device *dev, int device)$/;"	f
+as_sprintf	.\btier_main.c	/^void *as_sprintf(const char *fmt, ...)$/;"	f
+as_strarrcat	.\btier_sysfs.c	/^static char *as_strarrcat(const char **strarr, ssize_t count)$/;"	f	file:
+attached_devices	.\btier.h	/^	int attached_devices;$/;"	m	struct:tier_device
+attacheddevices	.\btier_sysfs.c	/^TIER_ATTR_RO(attacheddevices);$/;"	v
+average_age	.\btier.h	/^	time_t average_age;$/;"	m	struct:devicemagic
+average_reads	.\btier.h	/^	unsigned int average_reads;$/;"	m	struct:devicemagic
+average_writes	.\btier.h	/^	unsigned int average_writes;$/;"	m	struct:devicemagic
+backdev	.\btier.h	/^	struct backing_device **backdev;$/;"	m	struct:tier_device	typeref:struct:tier_device::backing_device
+backing_device	.\btier.h	/^struct backing_device {$/;"	s
+barrier	.\btier.h	/^	int barrier;$/;"	m	struct:tier_device
+barriers	.\btier_sysfs.c	/^TIER_ATTR_RW(barriers);$/;"	v
+bdev	.\btier.h	/^	struct block_device *bdev;$/;"	m	struct:backing_device	typeref:struct:backing_device::block_device
+binfo_journal_new	.\btier.h	/^	struct blockinfo binfo_journal_new;$/;"	m	struct:devicemagic	typeref:struct:devicemagic::blockinfo
+binfo_journal_old	.\btier.h	/^	struct blockinfo binfo_journal_old;$/;"	m	struct:devicemagic	typeref:struct:devicemagic::blockinfo
+binfo_sanity	.\btier_main.c	/^static int binfo_sanity(struct tier_device *dev, struct blockinfo *binfo)$/;"	f	file:
+bio_read_done	.\btier_main.c	/^static inline void bio_read_done(struct bio *bio, int err)$/;"	f	file:
+bio_task	.\btier.h	/^struct bio_task {$/;"	s
+bio_write_done	.\btier_main.c	/^static inline void bio_write_done(struct bio *bio, int err)$/;"	f	file:
+bitbufoffset	.\btier.h	/^	u64 bitbufoffset;$/;"	m	struct:backing_device
+bitlist	.\btier.h	/^	u8 *bitlist;$/;"	m	struct:backing_device
+bitlistsize	.\btier.h	/^	u64 bitlistsize;$/;"	m	struct:backing_device
+bitlistsize	.\btier.h	/^	u64 bitlistsize;$/;"	m	struct:devicemagic
+blockinfo	.\btier.h	/^struct blockinfo {$/;"	s
+blocklist	.\btier.h	/^	struct blockinfo **blocklist;$/;"	m	struct:backing_device	typeref:struct:backing_device::blockinfo
+blocklistsize	.\btier.h	/^	u64 blocklistsize;$/;"	m	struct:devicemagic
+blocklistsize	.\btier.h	/^	u64 blocklistsize;$/;"	m	struct:tier_device
+blocknr	.\btier.h	/^	u64 blocknr;$/;"	m	struct:migrate_direct
+blocknr_journal	.\btier.h	/^	u64 blocknr_journal;$/;"	m	struct:devicemagic
+btier_clear_statistics	.\btier_main.c	/^void btier_clear_statistics(struct tier_device *dev)$/;"	f
+btier_lock	.\btier_main.c	/^void btier_lock(struct tier_device *dev)$/;"	f
+btier_merge_bvec	.\btier_main.c	/^int btier_merge_bvec(struct request_queue *q, struct bvec_merge_data *bvm, struct bio_vec *bvec)$/;"	f
+btier_unlock	.\btier_main.c	/^void btier_unlock(struct tier_device *dev)$/;"	f
+btier_uuid	.\btier_main.c	/^char *btier_uuid(struct tier_device *dev)$/;"	f
+bv_page	.\btier.h	/^	struct page *bv_page;$/;"	m	struct:__anon3	typeref:struct:__anon3::page
+cacheentries	.\btier.h	/^	u64 cacheentries;$/;"	m	struct:tier_device
+calc_bitlist_size	.\btier_common.c	/^u64 calc_bitlist_size(u64 devicesize)$/;"	f
+calc_blocklist_size	.\btier_common.c	/^u64 calc_blocklist_size(u64 total_device_size, u64 total_bitlist_size)$/;"	f
+calc_new_devsize	.\btier_main.c	/^static u64 calc_new_devsize(struct tier_device *dev, int cdev, u64 curdevsize)$/;"	f	file:
+clean	.\btier.h	/^	unsigned int clean;$/;"	m	struct:devicemagic
+clean_blocklist_journal	.\btier_main.c	/^static void clean_blocklist_journal(struct tier_device *dev, int device)$/;"	f	file:
+clear_debug_info	.\btier_main.c	/^void clear_debug_info(struct tier_device *dev, int state)$/;"	f
+clear_dev_list	.\btier_main.c	/^static void clear_dev_list(struct tier_device *dev, struct blockinfo *binfo)$/;"	f	file:
+clear_statistics	.\btier_sysfs.c	/^TIER_ATTR_WO(clear_statistics);$/;"	v
+commit	.\btier.h	/^	atomic_t commit;$/;"	m	struct:tier_device
+commit_interval	.\btier.h	/^	unsigned int commit_interval;$/;"	m	struct:tier_device
+copyblock	.\btier_main.c	/^static int copyblock(struct tier_device *dev, struct blockinfo *newdevice,$/;"	f	file:
+copylist	.\btier_main.c	/^static int copylist(struct tier_device *dev, int devicenr,$/;"	f	file:
+curfd	.\btier.h	/^	atomic_t curfd;$/;"	m	struct:tier_device
+data	.\btier.h	/^	void *data;$/;"	m	struct:__anon3
+data_migrator	.\btier_main.c	/^static void data_migrator(struct work_struct *work)$/;"	f	file:
+data_policy	.\btier.h	/^struct data_policy {$/;"	s
+dbg_lock	.\btier.h	/^	spinlock_t dbg_lock;$/;"	m	struct:tier_device
+debug_state	.\btier.h	/^	int debug_state;$/;"	m	struct:tier_device
+del_tier_device	.\btier_main.c	/^static int del_tier_device(char *devicename)$/;"	f	file:
+determine_device_size	.\btier_main.c	/^static int determine_device_size(struct tier_device *dev)$/;"	f	file:
+determine_iotype	.\btier_main.c	/^static void determine_iotype(struct tier_device *dev, u64 blocknr)$/;"	f	file:
+dev	.\btier.h	/^	struct tier_device *dev;$/;"	m	struct:__anon3	typeref:struct:__anon3::tier_device
+dev	.\btier.h	/^	struct tier_device *dev;$/;"	m	struct:bio_task	typeref:struct:bio_task::tier_device
+device	.\btier.h	/^	struct tier_device *device;$/;"	m	struct:__anon2	typeref:struct:__anon2::tier_device
+device	.\btier.h	/^	unsigned int device;$/;"	m	struct:__anon3
+device	.\btier.h	/^	unsigned int device;$/;"	m	struct:blockinfo
+device	.\btier.h	/^	unsigned int device;$/;"	m	struct:devicemagic
+device	.\btier_main.c	/^static struct tier_device *device = NULL;$/;"	v	typeref:struct:tier_device	file:
+device_list	.\btier_main.c	/^LIST_HEAD(device_list);$/;"	v
+device_nr	.\btier_main.c	/^static struct tier_device *device_nr(int *nr)$/;"	f	file:
+device_usage	.\btier_sysfs.c	/^TIER_ATTR_RO(device_usage);$/;"	v
+devicemagic	.\btier.h	/^struct devicemagic {$/;"	s
+devicenames	.\btier_main.c	/^static char *devicenames;$/;"	v	file:
+devicesize	.\btier.h	/^	u64 devicesize;$/;"	m	struct:backing_device
+devicesize	.\btier.h	/^	u64 devicesize;$/;"	m	struct:devicemagic
+devmagic	.\btier.h	/^	struct devicemagic *devmagic;$/;"	m	struct:backing_device	typeref:struct:backing_device::devicemagic
+devname	.\btier.h	/^	char *devname;$/;"	m	struct:tier_device
+direct	.\btier.h	/^	atomic_t direct;$/;"	m	struct:migrate_direct
+dirty	.\btier.h	/^	unsigned int dirty;$/;"	m	struct:backing_device
+discard	.\btier.h	/^	int discard;$/;"	m	struct:tier_device
+discard	.\btier_sysfs.c	/^TIER_ATTR_RW(discard);$/;"	v
+discard_on_real_device	.\btier_main.c	/^static void discard_on_real_device(struct tier_device *dev,$/;"	f	file:
+discard_to_devices	.\btier.h	/^	int discard_to_devices;$/;"	m	struct:tier_device
+discard_to_devices	.\btier_sysfs.c	/^TIER_ATTR_RW(discard_to_devices);$/;"	v
+do_migrate_direct	.\btier_main.c	/^void do_migrate_direct(struct tier_device *dev)$/;"	f
+do_resize_tier	.\btier_main.c	/^static int do_resize_tier(struct tier_device *dev, int devicenr,$/;"	f	file:
+dtapolicy	.\btier.h	/^	struct data_policy dtapolicy;$/;"	m	struct:devicemagic	typeref:struct:devicemagic::data_policy
+endofdata	.\btier.h	/^	u64 endofdata;$/;"	m	struct:backing_device
+error	.\btier_main.c	/^	int error;$/;"	m	struct:submit_bio_ret	file:
+event	.\btier_main.c	/^	struct completion event;$/;"	m	struct:submit_bio_ret	typeref:struct:submit_bio_ret::completion	file:
+ex_kobj	.\btier.h	/^	struct kobject *ex_kobj;$/;"	m	struct:backing_device	typeref:struct:backing_device::kobject
+fd	.\btier.h	/^	int fd;$/;"	m	struct:fd_s
+fd_s	.\btier.h	/^struct fd_s {$/;"	s
+fds	.\btier.h	/^	struct file *fds;$/;"	m	struct:backing_device	typeref:struct:backing_device::file
+file_info_t	.\btier.h	/^} file_info_t;$/;"	t	typeref:struct:__anon1
+fp	.\btier.h	/^	struct file *fp;$/;"	m	struct:__anon1	typeref:struct:__anon1::file
+free_bitlists	.\btier_main.c	/^void free_bitlists(struct tier_device *dev)$/;"	f
+free_blocklist	.\btier_main.c	/^static void free_blocklist(struct tier_device *dev)$/;"	f	file:
+free_offset	.\btier.h	/^	u64 free_offset;$/;"	m	struct:backing_device
+fs	.\btier.h	/^	mm_segment_t fs;$/;"	m	struct:__anon1
+fullpathname	.\btier.h	/^	char fullpathname[1025];$/;"	m	struct:devicemagic
+gd	.\btier.h	/^	struct gendisk *gd;$/;"	m	struct:tier_device	typeref:struct:tier_device::gendisk
+get_blockinfo	.\btier_main.c	/^struct blockinfo *get_blockinfo(struct tier_device *dev, u64 blocknr,$/;"	f
+get_chunksize	.\btier_main.c	/^static int get_chunksize(struct block_device *bdev)$/;"	f	file:
+hit_collecttime	.\btier.h	/^	unsigned int hit_collecttime;$/;"	m	struct:data_policy
+in_one	.\btier.h	/^        int in_one;$/;"	m	struct:bio_task
+inerror	.\btier.h	/^	int inerror;$/;"	m	struct:tier_device
+init_devicenames	.\btier_main.c	/^static int init_devicenames(void)$/;"	f	file:
+insequence	.\btier.h	/^	unsigned int insequence;$/;"	m	struct:tier_device
+internals	.\btier_sysfs.c	/^TIER_ATTR_RO(internals);$/;"	v
+ioctl	.\btier.h	/^	int (*ioctl) (struct tier_device *, int cmd, u64 arg);$/;"	m	struct:tier_device
+ioctl_mutex	.\btier_main.c	/^static struct mutex ioctl_mutex;$/;"	v	typeref:struct:mutex	file:
+iotype	.\btier.h	/^	int iotype;$/;"	m	struct:tier_device
+lastblocknr	.\btier.h	/^	u64 lastblocknr;$/;"	m	struct:tier_device
+lastused	.\btier.h	/^	time_t lastused;$/;"	m	struct:blockinfo
+list	.\btier.h	/^	struct list_head list;$/;"	m	struct:tier_device	typeref:struct:tier_device::list_head
+load_bitlists	.\btier_main.c	/^int load_bitlists(struct tier_device *dev)$/;"	f
+load_blocklist	.\btier_main.c	/^static int load_blocklist(struct tier_device *dev)$/;"	f	file:
+lock	.\btier.h	/^	spinlock_t lock;$/;"	m	struct:tier_device
+logical_block_size	.\btier.h	/^	unsigned int logical_block_size;$/;"	m	struct:tier_device
+magic	.\btier.h	/^	unsigned int magic;$/;"	m	struct:devicemagic
+major_num	.\btier.h	/^	int major_num;$/;"	m	struct:tier_device
+managername	.\btier.h	/^	char *managername;$/;"	m	struct:tier_device
+mark_device_clean	.\btier_main.c	/^static void mark_device_clean(struct tier_device *dev, int device)$/;"	f	file:
+mark_offset_as_used	.\btier_main.c	/^static int mark_offset_as_used(struct tier_device *dev, int device, u64 offset)$/;"	f	file:
+max_age	.\btier.h	/^	unsigned int max_age;$/;"	m	struct:data_policy
+mgdirect	.\btier.h	/^	struct migrate_direct mgdirect;$/;"	m	struct:tier_device	typeref:struct:tier_device::migrate_direct
+migrate	.\btier.h	/^	atomic_t migrate;$/;"	m	struct:tier_device
+migrate_bitlist	.\btier_main.c	/^static int migrate_bitlist(struct tier_device *dev, int devicenr,$/;"	f	file:
+migrate_block	.\btier_sysfs.c	/^TIER_ATTR_WO(migrate_block);$/;"	v
+migrate_data_if_needed	.\btier_main.c	/^static int migrate_data_if_needed(struct tier_device *dev, u64 startofblocklist,$/;"	f	file:
+migrate_direct	.\btier.h	/^struct migrate_direct {$/;"	s
+migrate_direct	.\btier_main.c	/^int migrate_direct(struct tier_device *dev, u64 blocknr, int device)$/;"	f
+migrate_down_ifneeded	.\btier_main.c	/^static int migrate_down_ifneeded(struct tier_device *dev,$/;"	f	file:
+migrate_event	.\btier.h	/^	wait_queue_head_t migrate_event;$/;"	m	struct:tier_device
+migrate_timer	.\btier.h	/^	struct timer_list migrate_timer;$/;"	m	struct:tier_device	typeref:struct:tier_device::timer_list
+migrate_timer_expired	.\btier_main.c	/^static void migrate_timer_expired(unsigned long q)$/;"	f	file:
+migrate_up_ifneeded	.\btier_main.c	/^static int migrate_up_ifneeded(struct tier_device *dev, struct blockinfo *binfo,$/;"	f	file:
+migrate_verbose	.\btier.h	/^	int migrate_verbose;$/;"	m	struct:tier_device
+migrate_verbose	.\btier_sysfs.c	/^TIER_ATTR_RW(migrate_verbose);$/;"	v
+migration_disabled	.\btier.h	/^	int migration_disabled;$/;"	m	struct:data_policy
+migration_enable	.\btier_sysfs.c	/^TIER_ATTR_RW(migration_enable);$/;"	v
+migration_interval	.\btier.h	/^	u64 migration_interval;$/;"	m	struct:data_policy
+migration_interval	.\btier_sysfs.c	/^TIER_ATTR_RW(migration_interval);$/;"	v
+migration_policy	.\btier_sysfs.c	/^TIER_ATTR_RW(migration_policy);$/;"	v
+migration_queue	.\btier.h	/^	struct workqueue_struct *migration_queue;	\/* Data migration *\/$/;"	m	struct:tier_device	typeref:struct:tier_device::workqueue_struct
+new_total_bitlistsize	.\btier_main.c	/^static u64 new_total_bitlistsize(struct tier_device *dev, int cdev,$/;"	f	file:
+newdevice	.\btier.h	/^	int newdevice;$/;"	m	struct:migrate_direct
+nsectors	.\btier.h	/^	u64 nsectors;$/;"	m	struct:tier_device
+null_term_buf	.\btier_sysfs.c	/^static char *null_term_buf(const char *buf, size_t s)$/;"	f	file:
+numreads	.\btier_sysfs.c	/^TIER_ATTR_RO(numreads);$/;"	v
+numwrites	.\btier_sysfs.c	/^TIER_ATTR_RO(numwrites);$/;"	v
+offset	.\btier.h	/^	u64 offset;$/;"	m	struct:__anon3
+offset	.\btier.h	/^	u64 offset;$/;"	m	struct:blockinfo
+order_devices	.\btier_main.c	/^static int order_devices(struct tier_device *dev)$/;"	f	file:
+parent_bio	.\btier.h	/^	struct bio *parent_bio;$/;"	m	struct:bio_task	typeref:struct:bio_task::bio
+pending	.\btier.h	/^	atomic_t pending;$/;"	m	struct:bio_task
+pr_fmt	.\btier.h	2;"	d
+prepare_bio_req	.\btier_main.c	/^static struct bio *prepare_bio_req(struct tier_device *dev, unsigned int device,$/;"	f	file:
+ptsync	.\btier.h	/^	int ptsync;$/;"	m	struct:tier_device
+ptsync	.\btier_sysfs.c	/^TIER_ATTR_RW(ptsync);$/;"	v
+qlock	.\btier.h	/^	struct mutex qlock;$/;"	m	struct:tier_device	typeref:struct:tier_device::mutex
+ra_pages	.\btier.h	/^	unsigned int ra_pages;$/;"	m	struct:backing_device
+rand_reads	.\btier.h	/^	u64 rand_reads;$/;"	m	struct:tier_stats
+rand_writes	.\btier.h	/^	u64 rand_writes;$/;"	m	struct:tier_stats
+read_aio	.\btier_main.c	/^static int read_aio(struct tier_device *dev, int device, char *data, int size,$/;"	f	file:
+read_device_magic	.\btier_main.c	/^static struct devicemagic *read_device_magic(struct tier_device *dev,$/;"	f	file:
+read_tiered	.\btier_main.c	/^static int read_tiered(void *data, unsigned int len,$/;"	f	file:
+readcount	.\btier.h	/^	unsigned int readcount;$/;"	m	struct:blockinfo
+recover_journal	.\btier_main.c	/^static void recover_journal(struct tier_device *dev, int device)$/;"	f	file:
+register_new_device_size	.\btier_main.c	/^static void register_new_device_size(struct tier_device *dev)$/;"	f	file:
+release_devicename	.\btier_main.c	/^static void release_devicename(char *devicename)$/;"	f	file:
+repair_bitlists	.\btier_main.c	/^static void repair_bitlists(struct tier_device *dev)$/;"	f	file:
+reserve_devicename	.\btier_main.c	/^static char *reserve_devicename(unsigned int *devnr)$/;"	f	file:
+reset_counters_on_migration	.\btier_main.c	/^static void reset_counters_on_migration(struct tier_device *dev,$/;"	f	file:
+resize	.\btier_sysfs.c	/^TIER_ATTR_RW(resize);$/;"	v
+resize_tier	.\btier_main.c	/^void resize_tier(struct tier_device *dev)$/;"	f
+resumeblockwalk	.\btier.h	/^	u64 resumeblockwalk;$/;"	m	struct:tier_device
+round_to_blksize	.\btier_common.c	/^u64 round_to_blksize(u64 size)$/;"	f
+rqueue	.\btier.h	/^	struct request_queue *rqueue;$/;"	m	struct:tier_device	typeref:struct:tier_device::request_queue
+seq_reads	.\btier.h	/^	u64 seq_reads;$/;"	m	struct:tier_stats
+seq_writes	.\btier.h	/^	u64 seq_writes;$/;"	m	struct:tier_stats
+sequential_landing	.\btier.h	/^	unsigned int sequential_landing;$/;"	m	struct:data_policy
+sequential_landing	.\btier_sysfs.c	/^TIER_ATTR_RW(sequential_landing);$/;"	v
+set_debug_info	.\btier_main.c	/^void set_debug_info(struct tier_device *dev, int state)$/;"	f
+show_blockinfo	.\btier_sysfs.c	/^TIER_ATTR_RW(show_blockinfo);$/;"	v
+size	.\btier.h	/^	u64 size;$/;"	m	struct:tier_device
+size	.\btier.h	/^	unsigned int size;$/;"	m	struct:__anon3
+size_in_blocks	.\btier_sysfs.c	/^TIER_ATTR_RO(size_in_blocks);$/;"	v
+startofbitlist	.\btier.h	/^	u64 startofbitlist;$/;"	m	struct:backing_device
+startofbitlist	.\btier.h	/^	u64 startofbitlist;$/;"	m	struct:devicemagic
+startofblocklist	.\btier.h	/^	u64 startofblocklist;$/;"	m	struct:backing_device
+startofblocklist	.\btier.h	/^	u64 startofblocklist;$/;"	m	struct:devicemagic
+startofdata	.\btier.h	/^	u64 startofdata;$/;"	m	struct:backing_device
+states	.\btier.h	/^enum states {$/;"	g
+statlock	.\btier.h	/^	spinlock_t statlock;$/;"	m	struct:tier_device
+stats	.\btier.h	/^	struct tier_stats stats;$/;"	m	struct:tier_device	typeref:struct:tier_device::tier_stats
+stop	.\btier.h	/^	int stop;$/;"	m	struct:tier_device
+submit_bio_ret	.\btier_main.c	/^struct submit_bio_ret {$/;"	s	file:
+submit_bio_wait	.\btier_main.c	/^int submit_bio_wait(int rw, struct bio *bio)$/;"	f
+submit_bio_wait_endio	.\btier_main.c	/^static void submit_bio_wait_endio(struct bio *bio, int error)$/;"	f	file:
+sync_device	.\btier_main.c	/^static void sync_device(struct tier_device *dev, int device)$/;"	f	file:
+tier_add_bio	.\btier_main.c	/^static void tier_add_bio(struct tier_device *dev, struct bio *bio)$/;"	f	file:
+tier_attr_attacheddevices_show	.\btier_sysfs.c	/^static ssize_t tier_attr_attacheddevices_show(struct tier_device *dev,$/;"	f	file:
+tier_attr_barriers_show	.\btier_sysfs.c	/^static ssize_t tier_attr_barriers_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_barriers_store	.\btier_sysfs.c	/^static ssize_t tier_attr_barriers_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_clear_statistics_store	.\btier_sysfs.c	/^static ssize_t tier_attr_clear_statistics_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_device_usage_show	.\btier_sysfs.c	/^static ssize_t tier_attr_device_usage_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_discard_show	.\btier_sysfs.c	/^static ssize_t tier_attr_discard_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_discard_store	.\btier_sysfs.c	/^static ssize_t tier_attr_discard_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_discard_to_devices_show	.\btier_sysfs.c	/^static ssize_t tier_attr_discard_to_devices_show(struct tier_device *dev,$/;"	f	file:
+tier_attr_discard_to_devices_store	.\btier_sysfs.c	/^static ssize_t tier_attr_discard_to_devices_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_internals_show	.\btier_sysfs.c	/^static ssize_t tier_attr_internals_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_migrate_block_store	.\btier_sysfs.c	/^static ssize_t tier_attr_migrate_block_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_migrate_verbose_show	.\btier_sysfs.c	/^static ssize_t tier_attr_migrate_verbose_show(struct tier_device *dev,$/;"	f	file:
+tier_attr_migrate_verbose_store	.\btier_sysfs.c	/^static ssize_t tier_attr_migrate_verbose_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_migration_enable_show	.\btier_sysfs.c	/^static ssize_t tier_attr_migration_enable_show(struct tier_device *dev,$/;"	f	file:
+tier_attr_migration_enable_store	.\btier_sysfs.c	/^static ssize_t tier_attr_migration_enable_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_migration_interval_show	.\btier_sysfs.c	/^static ssize_t tier_attr_migration_interval_show(struct tier_device *dev,$/;"	f	file:
+tier_attr_migration_interval_store	.\btier_sysfs.c	/^static ssize_t tier_attr_migration_interval_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_migration_policy_show	.\btier_sysfs.c	/^static ssize_t tier_attr_migration_policy_show(struct tier_device *dev,$/;"	f	file:
+tier_attr_migration_policy_store	.\btier_sysfs.c	/^static ssize_t tier_attr_migration_policy_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_numreads_show	.\btier_sysfs.c	/^static ssize_t tier_attr_numreads_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_numwrites_show	.\btier_sysfs.c	/^static ssize_t tier_attr_numwrites_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_ptsync_show	.\btier_sysfs.c	/^static ssize_t tier_attr_ptsync_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_ptsync_store	.\btier_sysfs.c	/^static ssize_t tier_attr_ptsync_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_resize_show	.\btier_sysfs.c	/^static ssize_t tier_attr_resize_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_resize_store	.\btier_sysfs.c	/^static ssize_t tier_attr_resize_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_sequential_landing_show	.\btier_sysfs.c	/^static ssize_t tier_attr_sequential_landing_show(struct tier_device *dev,$/;"	f	file:
+tier_attr_sequential_landing_store	.\btier_sysfs.c	/^static ssize_t tier_attr_sequential_landing_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_show	.\btier_sysfs.c	/^ssize_t tier_attr_show(struct device *dev, char *page,$/;"	f
+tier_attr_show_blockinfo_show	.\btier_sysfs.c	/^static ssize_t tier_attr_show_blockinfo_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_show_blockinfo_store	.\btier_sysfs.c	/^static ssize_t tier_attr_show_blockinfo_store(struct tier_device *dev,$/;"	f	file:
+tier_attr_size_in_blocks_show	.\btier_sysfs.c	/^static ssize_t tier_attr_size_in_blocks_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_store	.\btier_sysfs.c	/^ssize_t tier_attr_store(struct device * dev, const char *page, size_t s,$/;"	f
+tier_attr_uuid_show	.\btier_sysfs.c	/^static ssize_t tier_attr_uuid_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_writethrough_show	.\btier_sysfs.c	/^static ssize_t tier_attr_writethrough_show(struct tier_device *dev, char *buf)$/;"	f	file:
+tier_attr_writethrough_store	.\btier_sysfs.c	/^static ssize_t tier_attr_writethrough_store(struct tier_device *dev,$/;"	f	file:
+tier_attribute_group	.\btier_main.c	/^static struct attribute_group tier_attribute_group = {$/;"	v	typeref:struct:attribute_group	file:
+tier_attrs	.\btier_sysfs.c	/^struct attribute *tier_attrs[] = {$/;"	v	typeref:struct:attribute
+tier_bio_io	.\btier_main.c	/^static int tier_bio_io(struct tier_device *dev, unsigned int device,$/;"	f	file:
+tier_bio_io_paged	.\btier_main.c	/^static int tier_bio_io_paged(struct tier_device *dev, unsigned int device,$/;"	f	file:
+tier_bio_list	.\btier.h	/^	struct bio_list tier_bio_list;$/;"	m	struct:tier_device	typeref:struct:tier_device::bio_list
+tier_check	.\btier_main.c	/^static void tier_check(struct tier_device *dev, int devicenr)$/;"	f	file:
+tier_ctl_mutex	.\btier.h	/^	struct mutex tier_ctl_mutex;$/;"	m	struct:tier_device	typeref:struct:tier_device::mutex
+tier_deregister	.\btier_main.c	/^static void tier_deregister(struct tier_device *dev)$/;"	f	file:
+tier_device	.\btier.h	/^	struct block_device *tier_device;$/;"	m	struct:tier_device	typeref:struct:tier_device::block_device
+tier_device	.\btier.h	/^struct tier_device {$/;"	s
+tier_device_count	.\btier_main.c	/^static int tier_device_count(void)$/;"	f	file:
+tier_device_number	.\btier.h	/^	int tier_device_number;$/;"	m	struct:tier_device
+tier_devices_mutex	.\btier_main.c	/^DEFINE_MUTEX(tier_devices_mutex);$/;"	v
+tier_discard	.\btier_main.c	/^static void tier_discard(struct tier_device *dev, u64 offset, unsigned int size)$/;"	f	file:
+tier_do_bio	.\btier_main.c	/^static int tier_do_bio(struct bio_task *bio_task)$/;"	f	file:
+tier_event	.\btier.h	/^	wait_queue_head_t tier_event;$/;"	m	struct:tier_device
+tier_exit	.\btier_main.c	/^module_exit(tier_exit);$/;"	v
+tier_exit	.\btier_main.c	/^static void __exit tier_exit(void)$/;"	f	file:
+tier_file_read	.\btier_main.c	/^static int tier_file_read(struct tier_device *dev, unsigned int device,$/;"	f	file:
+tier_file_write	.\btier_main.c	/^static int tier_file_write(struct tier_device *dev, unsigned int device,$/;"	f	file:
+tier_get_bio	.\btier_main.c	/^static struct bio *tier_get_bio(struct tier_device *dev)$/;"	f	file:
+tier_get_size	.\btier_main.c	/^static loff_t tier_get_size(struct file *file)$/;"	f	file:
+tier_handle_bio	.\btier_main.c	/^static inline void tier_handle_bio(struct bio_task *bio_task)$/;"	f	file:
+tier_init	.\btier_main.c	/^module_init(tier_init);$/;"	v
+tier_init	.\btier_main.c	/^static int __init tier_init(void)$/;"	f	file:
+tier_ioctl	.\btier_main.c	/^static long tier_ioctl(struct file *file, unsigned int cmd, unsigned long arg)$/;"	f	file:
+tier_make_request	.\btier_main.c	/^static int tier_make_request(struct request_queue *q, struct bio *old_bio)$/;"	f	file:
+tier_open	.\btier_main.c	/^static int tier_open(struct block_device *bdev, fmode_t mode)$/;"	f	file:
+tier_ops	.\btier_main.c	/^static struct block_device_operations tier_ops = {$/;"	v	typeref:struct:block_device_operations	file:
+tier_read_page	.\btier_main.c	/^static int tier_read_page(unsigned int device,$/;"	f	file:
+tier_register	.\btier_main.c	/^static int tier_register(struct tier_device *dev)$/;"	f	file:
+tier_release	.\btier_main.c	/^static void tier_release(struct gendisk *gd, fmode_t mode)$/;"	f	file:
+tier_set_fd	.\btier_main.c	/^static int tier_set_fd(struct tier_device *dev, struct fd_s *fds,$/;"	f	file:
+tier_stats	.\btier.h	/^struct tier_stats {$/;"	s
+tier_sync	.\btier_main.c	/^static int tier_sync(struct tier_device *dev)$/;"	f	file:
+tier_sysfs_exit	.\btier_main.c	/^static void tier_sysfs_exit(struct tier_device *dev)$/;"	f	file:
+tier_sysfs_init	.\btier_main.c	/^static int tier_sysfs_init(struct tier_device *dev)$/;"	f	file:
+tier_thread	.\btier.h	/^	struct task_struct *tier_thread;$/;"	m	struct:tier_device	typeref:struct:tier_device::task_struct
+tier_thread	.\btier_main.c	/^static int tier_thread(void *data)$/;"	f	file:
+tier_wait_bio	.\btier_main.c	/^static inline void tier_wait_bio(struct bio_task *bio_task)$/;"	f	file:
+tier_worker_t	.\btier.h	/^} tier_worker_t;$/;"	t	typeref:struct:__anon2
+tier_write_page	.\btier_main.c	/^static int tier_write_page(unsigned int device,$/;"	f	file:
+tiererror	.\btier_main.c	/^static void tiererror(struct tier_device *dev, char *msg)$/;"	f	file:
+tiger_hash	.\btier_main.c	/^char *tiger_hash(char *data, unsigned int dlen)$/;"	f
+total_bitlist_size	.\btier.h	/^	u64 total_bitlist_size;	\/* Only valid for tier 0 *\/$/;"	m	struct:devicemagic
+total_device_size	.\btier.h	/^	u64 total_device_size;	\/* Only valid for tier 0 *\/$/;"	m	struct:devicemagic
+total_reads	.\btier.h	/^	u64 total_reads;$/;"	m	struct:devicemagic
+total_writes	.\btier.h	/^	u64 total_writes;$/;"	m	struct:devicemagic
+u32	.\btier.h	/^typedef unsigned long u32;$/;"	t
+u64	.\btier.h	/^typedef unsigned long long u64;$/;"	t
+update_blocklist	.\btier_main.c	/^static void update_blocklist(struct tier_device *dev, u64 blocknr,$/;"	f	file:
+usage_lock	.\btier.h	/^	spinlock_t usage_lock;$/;"	m	struct:tier_device
+use_bio	.\btier.h	/^	int use_bio;$/;"	m	struct:fd_s
+use_bio	.\btier.h	/^	int use_bio;$/;"	m	struct:tier_device
+use_bio	.\btier.h	/^	unsigned int use_bio;$/;"	m	struct:devicemagic
+usedoffset	.\btier.h	/^	u64 usedoffset;$/;"	m	struct:backing_device
+user_selected_blockinfo	.\btier.h	/^	u64 user_selected_blockinfo;$/;"	m	struct:tier_device
+user_selected_ispaged	.\btier.h	/^	int user_selected_ispaged;$/;"	m	struct:tier_device
+users	.\btier.h	/^	unsigned int users;$/;"	m	struct:tier_device
+uuid	.\btier.h	/^	char uuid[24];$/;"	m	struct:devicemagic
+uuid	.\btier_sysfs.c	/^TIER_ATTR_RO(uuid);$/;"	v
+uuid_hash	.\btier_main.c	/^char *uuid_hash(char *data, int hashlen)$/;"	f
+vfs	.\btier.h	/^	int vfs;$/;"	m	struct:bio_task
+vzalloc	.\btier_main.h	19;"	d
+walk_blocklist	.\btier_main.c	/^static void walk_blocklist(struct tier_device *dev)$/;"	f	file:
+wipe_bitlist	.\btier_main.c	/^static void wipe_bitlist(struct tier_device *dev, int device,$/;"	f	file:
+work	.\btier.h	/^	struct work_struct work;$/;"	m	struct:__anon2	typeref:struct:__anon2::work_struct
+work	.\btier.h	/^	struct work_struct work;$/;"	m	struct:__anon3	typeref:struct:__anon3::work_struct
+wqlock	.\btier.h	/^	atomic_t wqlock;$/;"	m	struct:tier_device
+write_blocklist	.\btier_main.c	/^static int write_blocklist(struct tier_device *dev, u64 blocknr,$/;"	f	file:
+write_blocklist_journal	.\btier_main.c	/^static void write_blocklist_journal(struct tier_device *dev, u64 blocknr,$/;"	f	file:
+write_device_magic	.\btier_main.c	/^static void write_device_magic(struct tier_device *dev, int device)$/;"	f	file:
+write_tiered	.\btier_main.c	/^static int write_tiered(void *data, unsigned int len,$/;"	f	file:
+writecount	.\btier.h	/^	unsigned int writecount;$/;"	m	struct:blockinfo
+writethrough	.\btier.h	/^	int writethrough;$/;"	m	struct:tier_device
+writethrough	.\btier.h	/^	unsigned int writethrough;$/;"	m	struct:devicemagic
+writethrough	.\btier_sysfs.c	/^TIER_ATTR_RW(writethrough);$/;"	v
+xzalloc	.\btier_main.h	/^void *xzalloc(size_t size)$/;"	f
+zero_buf	.\btier.h	/^	char zero_buf[PAGE_SIZE];$/;"	m	struct:tier_device
