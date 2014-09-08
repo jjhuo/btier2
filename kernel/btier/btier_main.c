@@ -2161,13 +2161,16 @@ static int tier_register(struct tier_device *dev)
 	tier_worker_t *migrateworker;
 	struct devicemagic *magic = dev->backdev[0]->devmagic;
 	struct data_policy *dtapolicy = &magic->dtapolicy;
+	struct request_queue *q;
 
 	dev->devname = reserve_devicename(&devnr);
 	if (!dev->devname)
 		return -1;
 	dev->active = 1;
+	
+	/* Barriers can not be used when we work in ram only */
 	dev->barrier = 1;
-/* Barriers can not be used when we work in ram only */
+	
 	if (0 == dev->logical_block_size)
 		dev->logical_block_size = 512;
 	if (dev->logical_block_size != 512 &&
@@ -2184,53 +2187,67 @@ static int tier_register(struct tier_device *dev)
 		dev->nsectors = dev->size >> 12;
 	dev->size = dev->nsectors * dev->logical_block_size;
 	pr_info("%s size : %llu\n", dev->devname, dev->size);
+
 	spin_lock_init(&dev->lock);
 	spin_lock_init(&dev->statlock);
 	spin_lock_init(&dev->dbg_lock);
 	bio_list_init(&dev->tier_bio_list);
-	dev->rqueue = blk_alloc_queue(GFP_KERNEL);
-	if (!dev->rqueue) {
+
+	/* Get a request queue.*/
+	q = blk_alloc_queue(GFP_KERNEL);
+	if (!q) {
 		ret = -ENOMEM;
 		goto out;
 	}
+
 	ret = load_blocklist(dev);
 	if (0 != ret)
 		goto out;
 	ret = load_bitlists(dev);
 	if (0 != ret)
 		goto out;
+
 	init_waitqueue_head(&dev->tier_event);
 	init_waitqueue_head(&dev->migrate_event);
 	init_waitqueue_head(&dev->aio_event);
+
 	dev->cacheentries = 0;
 	dev->migrate_verbose = 0;
 	dev->stop = 0;
 	dev->iotype = RANDOM;
+
 	atomic_set(&dev->migrate, 0);
 	atomic_set(&dev->commit, 0);
 	atomic_set(&dev->wqlock, 0);
 	atomic_set(&dev->aio_pending, 0);
 	atomic_set(&dev->curfd, 2);
 	atomic_set(&dev->mgdirect.direct, 0);
-	/*
-	 * Get a request queue.
-	 */
 	mutex_init(&dev->tier_ctl_mutex);
 	mutex_init(&dev->qlock);
-	/*
-	 * set queue make_request_fn, and add limits based on lower level
-	 * device
-	 */
-	blk_queue_make_request(dev->rqueue, tier_make_request);
-	dev->rqueue->queuedata = (void *)dev;
 
-	/* Tell the block layer that we are not a rotational device
-	   and that we support discard aka trim.
+	/* Set queue make_request_fn */
+	blk_queue_make_request(q, tier_make_request);
+	dev->rqueue = q;
+	q->queuedata = (void *)dev;
+
+	/*
+	 * Add limits and tell the block layer that we are not a rotational
+	 * device and that we support discard aka trim.
 	 */
-	blk_queue_logical_block_size(dev->rqueue, dev->logical_block_size);
-	blk_queue_io_opt(dev->rqueue, BLKSIZE);
+	blk_queue_logical_block_size(q, dev->logical_block_size);
+	blk_queue_io_opt(q, BLKSIZE);
+	blk_queue_max_discard_sectors(q, get_capacity(dev->gd));
+	q->limits.max_segments		= BIO_MAX_PAGES;	
+	q->limits.max_hw_sectors	= q->limits.max_segment_size * 
+					  q->limits.max_segments;	
+	q->limits.max_sectors		= q->limits.max_hw_sectors;
+	q->limits.discard_granularity	= BLKSIZE;
+	q->limits.discard_alignment	= BLKSIZE;
+	set_bit(QUEUE_FLAG_NONROT,      &q->queue_flags);
+	set_bit(QUEUE_FLAG_DISCARD,     &q->queue_flags);
 	if (dev->barrier)
-		blk_queue_flush(dev->rqueue, REQ_FLUSH | REQ_FUA);
+		blk_queue_flush(q, REQ_FLUSH | REQ_FUA);
+
 	/*
 	 * Get registered.
 	 */
@@ -2239,6 +2256,7 @@ static int tier_register(struct tier_device *dev)
 		pr_warning("tier: unable to get major number\n");
 		goto out;
 	}
+
 	/*
 	 * And the gendisk structure.
 	 */
@@ -2253,7 +2271,8 @@ static int tier_register(struct tier_device *dev)
 	dev->gd->private_data = dev;
 	strcpy(dev->gd->disk_name, dev->devname);
 	set_capacity(dev->gd, dev->nsectors * (dev->logical_block_size / 512));
-	dev->gd->queue = dev->rqueue;
+	dev->gd->queue = q;
+
 	dev->tier_thread = kthread_create(tier_thread, dev, dev->devname);
 	if (IS_ERR(dev->tier_thread)) {
 		pr_err("Failed to create kernel thread\n");
@@ -2261,6 +2280,7 @@ static int tier_register(struct tier_device *dev)
 		goto out_unregister;
 	}
 	wake_up_process(dev->tier_thread);
+
 	migrateworker = kzalloc(sizeof(tier_worker_t), GFP_KERNEL);
 	if (!migrateworker) {
 		pr_err("Failed to allocate memory for migrateworker\n");
@@ -2272,16 +2292,15 @@ static int tier_register(struct tier_device *dev)
 	dev->migration_queue = create_workqueue(dev->managername);
 	INIT_WORK((struct work_struct *)migrateworker, data_migrator);
 	queue_work(dev->migration_queue, (struct work_struct *)migrateworker);
+
 	init_timer(&dev->migrate_timer);
 	dev->migrate_timer.data = (unsigned long)dev;
 	dev->migrate_timer.function = migrate_timer_expired;
 	dev->migrate_timer.expires =
 	    jiffies + msecs_to_jiffies(dtapolicy->migration_interval * 1000);
 	add_timer(&dev->migrate_timer);
+
 	add_disk(dev->gd);
-	blk_queue_max_discard_sectors(dev->rqueue, get_capacity(dev->gd));
-	dev->rqueue->limits.discard_granularity = BLKSIZE;
-	dev->rqueue->limits.discard_alignment = BLKSIZE;
 	tier_sysfs_init(dev);
 
 	/* let user-space know about the new size */
