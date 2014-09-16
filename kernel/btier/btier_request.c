@@ -354,6 +354,10 @@ static int read_tiered(void *data, unsigned int len,
                                           block_offset + parent_bio->bi_iter.bi_size <= BLKSIZE )
                                          bio_task->in_one = 1;
                                 }
+
+				if(done)
+					atomic_inc(&bio_task->pending);
+
 				res =
 				    tier_read_page(device, bvec,
 						   binfo->offset + block_offset,
@@ -421,6 +425,10 @@ static int write_tiered(void *data, unsigned int len,
                                  block_offset + parent_bio->bi_iter.bi_size <= BLKSIZE )
                                  bio_task->in_one = 1;
                         }
+
+			if(done)
+				atomic_inc(&bio_task->pending);
+
 			res =
 			    tier_write_page(device, bvec,
 					    binfo->offset + block_offset,
@@ -614,9 +622,6 @@ int tier_thread(void *data)
 	return 0;
 }
 
-/*
- * 1. if bio size is 0, flag is flush, flush metadata
-*/
 void tier_make_request(struct request_queue *q, struct bio *old_bio)
 {
 	int cpu;
