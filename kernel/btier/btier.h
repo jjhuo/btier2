@@ -1,3 +1,6 @@
+#ifndef _BTIER_H_
+#define _BTIER_H_
+
 #ifdef __KERNEL__
 #define pr_fmt(fmt) "btier: " fmt
 #include <linux/bio.h>
@@ -298,15 +301,19 @@ typedef struct {
 	struct tier_device *device;
 } tier_worker_t;
 
-typedef struct {
-	struct work_struct work;
-	struct tier_device *dev;
-	u64 offset;
-	unsigned int device;
-	void *data;
-	unsigned int size;
-	struct page *bv_page;
-} aio_work_t;
+int get_chunksize(struct block_device *);
+struct blockinfo *get_blockinfo(struct tier_device *, u64, int);
+void tier_make_request(struct request_queue *q, struct bio *old_bio);
+int tier_thread(void *data);
+
+int write_blocklist(struct tier_device *, u64, struct blockinfo *, int);
+void set_debug_info(struct tier_device *dev, int state);
+void clear_debug_info(struct tier_device *dev, int state);
+int allocate_dev(struct tier_device *dev, u64 blocknr,
+			struct blockinfo *binfo, int device);
+void tiererror(struct tier_device *dev, char *msg);
+int tier_sync(struct tier_device *dev);
+void tier_discard(struct tier_device *dev, u64 offset, unsigned int size);
 
 void free_bitlists(struct tier_device *);
 void resize_tier(struct tier_device *);
@@ -314,9 +321,10 @@ int load_bitlists(struct tier_device *);
 void *as_sprintf(const char *, ...);
 u64 allocated_on_device(struct tier_device *, int);
 void btier_clear_statistics(struct tier_device *dev);
-struct blockinfo *get_blockinfo(struct tier_device *, u64, int);
 int migrate_direct(struct tier_device *, u64, int);
 char *tiger_hash(char *, unsigned int);
 void btier_lock(struct tier_device *);
 void btier_unlock(struct tier_device *);
 #endif
+
+#endif /* _BTIER_H_ */

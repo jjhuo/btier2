@@ -1,3 +1,9 @@
+/*
+ * Btier sysfs attributes and store/show functions.
+ *
+ * Copyright (C) 2014 Mark Ruijter, <mruijter@gmail.com>
+ */
+
 #include "btier.h"
 
 extern struct list_head device_list;
