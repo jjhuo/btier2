@@ -505,30 +505,75 @@ void tiererror(struct tier_device *dev, char *msg)
 	pr_crit("tiererror : %s\n", msg);
 }
 
+/* if a physical_blockinfo has same content as blockinfo */
+static bool same_blockinfo(struct physical_blockinfo *phy_binfo,
+			   struct blockinfo *binfo)
+{
+	if (phy_binfo->device != binfo->device)
+		return false;
+	if (phy_binfo->offset != binfo->offset)
+		return false;
+	if (phy_binfo->lastused != binfo->lastused)
+		return false;
+	if (phy_binfo->readcount != binfo->readcount)
+		return false;
+	if (phy_binfo->writecount != binfo->writecount)
+		return false;
+
+	return true;
+
+}
+
+/* copy blockinfo to physical_blockinfo */
+static void copy_blockinfo(struct physical_blockinfo *phy_binfo,
+			   struct blockinfo *binfo)
+{
+	phy_binfo->device     = binfo->device;
+	phy_binfo->offset     = binfo->offset;
+	phy_binfo->lastused   = binfo->lastused;
+	phy_binfo->readcount  = binfo->readcount;
+	phy_binfo->writecount = binfo->writecount;
+}
+
+/* copy physical_blockinfo to blockinfo  */
+static void copy_physical_blockinfo(struct blockinfo *binfo,
+			   struct physical_blockinfo *phy_binfo)
+{
+	binfo->device     = phy_binfo->device;
+	binfo->offset     = phy_binfo->offset;
+	binfo->lastused   = phy_binfo->lastused;
+	binfo->readcount  = phy_binfo->readcount;
+	binfo->writecount = phy_binfo->writecount;
+}
+
 /* Delayed metadata update routine */
 static void update_blocklist(struct tier_device *dev, u64 blocknr,
 			     struct blockinfo *binfo)
 {
-	struct blockinfo *odinfo;
+	struct physical_blockinfo *phy_binfo;
 	int res;
 
 	if (dev->inerror)
 		return;
-	odinfo = kzalloc(sizeof(struct blockinfo), GFP_NOFS);
-	if (!odinfo) {
+
+	phy_binfo = kzalloc(sizeof(*phy_binfo), GFP_NOFS);
+	if (!phy_binfo) {
 		tiererror(dev, "kzalloc failed");
 		return;
 	}
+
 	res = tier_file_read(dev, 0,
-			     odinfo, sizeof(*odinfo),
+			     phy_binfo, sizeof(*phy_binfo),
 			     dev->backdev[0]->startofblocklist +
-			     (blocknr * sizeof(*odinfo)));
+			     (blocknr * sizeof(*phy_binfo)));
 	if (res != 0)
 		tiererror(dev, "tier_file_read : returned an error");
-	if (0 != memcmp(binfo, odinfo, sizeof(*odinfo))) {
+
+	if (!same_blockinfo(phy_binfo, binfo)) {
 		(void)write_blocklist(dev, blocknr, binfo, WD);
 	}
-	kfree(odinfo);
+
+	kfree(phy_binfo);
 }
 
 /* When write_blocklist is called with write_policy set to
@@ -542,26 +587,33 @@ int write_blocklist(struct tier_device *dev, u64 blocknr,
 {
 	int ret = 0;
 	struct backing_device *backdev = dev->backdev[0];
-	u64 blocklist_offset = backdev->startofblocklist;
 
-	blocklist_offset += (blocknr * sizeof(struct blockinfo));
 	binfo->lastused = get_seconds();
+
 	if (write_policy != WD) {
 		memcpy(backdev->blocklist[blocknr], binfo,
 		       sizeof(struct blockinfo));
 	}
+
 	if (write_policy != WC) {
+		u64 blocklist_offset = backdev->startofblocklist;
+		struct physical_blockinfo phy_binfo;
+
+		blocklist_offset += (blocknr * sizeof(struct physical_blockinfo));
+		copy_blockinfo(&phy_binfo, binfo);
+
 		ret =
-		    tier_file_write(dev, 0, binfo,
-				    sizeof(*binfo), blocklist_offset);
+		    tier_file_write(dev, 0, &phy_binfo,
+				    sizeof(phy_binfo), blocklist_offset);
 		if (ret != 0) {
 			pr_crit("write_blocklist failed to write blockinfo\n");
 			return ret;
 		}
 		ret =
 		    vfs_fsync_range(backdev->fds, blocklist_offset,
-				    blocklist_offset + sizeof(*binfo), FSMODE);
+				    blocklist_offset + sizeof(phy_binfo), FSMODE);
 	}
+
 	return ret;
 }
 
@@ -580,10 +632,10 @@ static void write_blocklist_journal(struct tier_device *dev, u64 blocknr,
 {
 	struct backing_device *oldbackdev = dev->backdev[olddevice->device - 1];
 	struct devicemagic *olddev_magic = oldbackdev->devmagic;
-	memcpy(&olddev_magic->binfo_journal_old, olddevice,
-	       sizeof(struct blockinfo));
-	memcpy(&olddev_magic->binfo_journal_new, newdevice,
-	       sizeof(struct blockinfo));
+
+	copy_blockinfo(&olddev_magic->binfo_journal_old, olddevice);
+	copy_blockinfo(&olddev_magic->binfo_journal_new, newdevice);
+
 	olddev_magic->blocknr_journal = blocknr;
 	tier_file_write(dev, olddevice->device - 1,
 			oldbackdev->devmagic, sizeof(struct devicemagic), 0);
@@ -594,8 +646,8 @@ static void clean_blocklist_journal(struct tier_device *dev, int device)
 {
 	struct devicemagic *devmagic = dev->backdev[device]->devmagic;
 
-	memset(&devmagic->binfo_journal_old, 0, sizeof(struct blockinfo));
-	memset(&devmagic->binfo_journal_new, 0, sizeof(struct blockinfo));
+	memset(&devmagic->binfo_journal_old, 0, sizeof(struct physical_blockinfo));
+	memset(&devmagic->binfo_journal_new, 0, sizeof(struct physical_blockinfo));
 	devmagic->blocknr_journal = 0;
 	tier_file_write(dev, device, devmagic, sizeof(*devmagic), 0);
 	sync_device(dev, device);
@@ -606,6 +658,7 @@ static void recover_journal(struct tier_device *dev, int device)
 	u64 blocknr;
 	struct backing_device *backdev = dev->backdev[device];
 	struct devicemagic *devmagic = backdev->devmagic;
+	struct blockinfo binfo;
 
 	tier_file_read(dev, device, devmagic, sizeof(*devmagic), 0);
 	if (0 == devmagic->binfo_journal_old.device) {
@@ -613,11 +666,17 @@ static void recover_journal(struct tier_device *dev, int device)
 		    ("recover_journal : journal is clean, no need to recover\n");
 		return;
 	}
+
 	blocknr = devmagic->blocknr_journal;
-	write_blocklist(dev, blocknr, &devmagic->binfo_journal_old, WD);
-	if (0 != devmagic->binfo_journal_new.device)
-		clear_dev_list(dev, &devmagic->binfo_journal_new);
+	copy_physical_blockinfo(&binfo, &devmagic->binfo_journal_old);
+	write_blocklist(dev, blocknr, &binfo, WD);
+
+	if (0 != devmagic->binfo_journal_new.device) {
+		copy_physical_blockinfo(&binfo, &devmagic->binfo_journal_new);
+		clear_dev_list(dev, &binfo);
+	}
 	clean_blocklist_journal(dev, device);
+
 	pr_info
 	    ("recover_journal : recovered pending migration of blocknr %llu\n",
 	     blocknr);
@@ -993,29 +1052,40 @@ static int load_blocklist(struct tier_device *dev)
 	u64 listentries = dev->blocklistsize / sizeof(struct blockinfo);
 	struct backing_device *backdev = dev->backdev[0];
 	int res = 0;
+	struct physical_blockinfo phy_binfo;
+	struct blockinfo *binfo;
 
 	backdev->blocklist = vzalloc(sizeof(struct blockinfo *) * listentries);
 	if (!dev->backdev[0]->blocklist)
 		return -ENOMEM;
+
 	for (curblock = 0; curblock < blocks; curblock++) {
-		backdev->blocklist[curblock] =
-		    kzalloc(sizeof(struct blockinfo), GFP_KERNEL);
-		if (!backdev->blocklist[curblock]) {
+		binfo = kzalloc(sizeof(struct blockinfo), GFP_KERNEL);
+		if (!binfo) {
 			alloc_failed = 1;
 			break;
 		}
+
+		backdev->blocklist[curblock] = binfo;
+
+		spin_lock_init(&binfo->lock);
+
 		res = tier_file_read(dev, 0,
-				     backdev->blocklist[curblock],
-				     sizeof(struct blockinfo),
+				     &phy_binfo,
+				     sizeof(phy_binfo),
 				     backdev->startofblocklist +
-				     (curblock * sizeof(struct blockinfo)));
+				     (curblock * sizeof(phy_binfo)));
 		if (res != 0)
 			tiererror(dev, "tier_file_read : returned an error");
+
+		copy_physical_blockinfo(binfo, &phy_binfo);
 	}
+
 	if (alloc_failed) {
 		res = -ENOMEM;
 		free_blocklist(dev);
 	}
+
 	return res;
 }
 

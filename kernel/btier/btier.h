@@ -145,7 +145,7 @@ struct data_policy {
 	u64 migration_interval;
 };
 
-struct blockinfo {
+struct physical_blockinfo {
 	unsigned int device;
 	u64 offset;
 	time_t lastused;
@@ -158,8 +158,8 @@ struct devicemagic {
 	unsigned int device;
 	unsigned int clean;
 	u64 blocknr_journal;
-	struct blockinfo binfo_journal_new;
-	struct blockinfo binfo_journal_old;
+	struct physical_blockinfo binfo_journal_new;
+	struct physical_blockinfo binfo_journal_old;
 	unsigned int average_reads;
 	unsigned int average_writes;
 	u64 total_reads;
@@ -197,6 +197,22 @@ typedef struct {
 	struct file *fp;
 	mm_segment_t fs;
 } file_info_t;
+
+/*
+ * This structure has same members as physical_blockinfo, other than the lock,
+ * the order of members is intended to remove unaligned memory access on 64
+ * bit machine;
+ * The addition of the lock won't increase memory, due to kmalloc paddings, 
+ * but adding any new member later will almost double the size of blocklist. 
+ */
+struct blockinfo {
+	spinlock_t lock;
+	unsigned int device;
+	u64 offset;
+	time_t lastused;
+	unsigned int readcount;
+	unsigned int writecount;
+};
 
 struct backing_device {
 	struct file *fds;
@@ -250,8 +266,8 @@ struct tier_device {
 	spinlock_t usage_lock;
 	spinlock_t dbg_lock;
 	struct gendisk *gd;
-	struct workqueue_struct *migration_queue;	/* Data migration */
-	struct workqueue_struct *aio_queue;	/* Async IO */
+	/* Data migration work queue*/
+	struct workqueue_struct *migration_queue;
 	struct task_struct *tier_thread;
 	struct bio_list tier_bio_list;
 	struct request_queue *rqueue;
