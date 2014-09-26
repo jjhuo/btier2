@@ -22,6 +22,7 @@ MODULE_AUTHOR("Mark Ruijter");
 
 LIST_HEAD(device_list);
 DEFINE_MUTEX(tier_devices_mutex);
+struct workqueue_struct *btier_wq;
 
 /*
  * The internal representation of our device.
@@ -137,7 +138,7 @@ static int tier_sysfs_init(struct tier_device *dev)
 void btier_lock(struct tier_device *dev)
 {
 	atomic_set(&dev->migrate, MIGRATION_IO);
-	mutex_lock(&dev->qlock);
+	down_write(&dev->qlock);
 	if (0 != atomic_read(&dev->aio_pending))
 		wait_event(dev->aio_event, 0 == atomic_read(&dev->aio_pending));
 }
@@ -145,7 +146,7 @@ void btier_lock(struct tier_device *dev)
 void btier_unlock(struct tier_device *dev)
 {
 	atomic_set(&dev->migrate, 0);
-	mutex_unlock(&dev->qlock);
+	up_write(&dev->qlock);
 }
 
 void btier_clear_statistics(struct tier_device *dev)
@@ -257,7 +258,9 @@ int allocate_dev(struct tier_device *dev, u64 blocknr,
 	u64 relative_offset = 0;
 	int ret = 0;
 	unsigned int buffercount;
+
 	cur = backdev->free_offset >> 12;
+
 	/* The bitlist may be loaded into memory or be NULL if not */
 	while (0 == binfo->device && (cur * PAGE_SIZE) < backdev->bitlistsize) {
 		buffer = &backdev->bitlist[cur * PAGE_SIZE];
@@ -437,14 +440,14 @@ static int tier_file_read(struct tier_device *dev, unsigned int device,
 
 	file = backdev->fds;
 	/* Disable readahead on random IO */
-	if (dev->iotype == RANDOM)
-		file->f_ra.ra_pages = 0;
+	/*if (dev->iotype == RANDOM)
+		file->f_ra.ra_pages = 0;*/
 	set_debug_info(dev, VFSREAD);
 	set_fs(get_ds());
 	bw = vfs_read(file, buf, len, &pos);
 	set_fs(old_fs);
 	clear_debug_info(dev, VFSREAD);
-	file->f_ra.ra_pages = backdev->ra_pages;
+	/*file->f_ra.ra_pages = backdev->ra_pages;*/
 	if (likely(bw == len))
 		return 0;
 	pr_err("Read error at byte offset %llu, length %i.\n",
@@ -682,7 +685,7 @@ static void recover_journal(struct tier_device *dev, int device)
 	     blocknr);
 }
 
-static void discard_on_real_device(struct tier_device *dev,
+void discard_on_real_device(struct tier_device *dev,
 				   struct blockinfo *binfo)
 {
 	struct block_device *bdev;
@@ -729,46 +732,6 @@ static void discard_on_real_device(struct tier_device *dev,
 			     backdev->devmagic->fullpathname,
 			     (unsigned long long)sector,
 			     (unsigned long long)nr_sects, sector_size);
-	}
-}
-
-/* Reset blockinfo for this block to unused and clear the
-   bitlist for this block
-*/
-void tier_discard(struct tier_device *dev, u64 offset, unsigned int size)
-{
-	struct blockinfo *binfo;
-	u64 blocknr;
-	u64 lastblocknr;
-	u64 curoff;
-	u64 start;
-
-	if (!dev->discard)
-		return;
-	curoff = offset + size;
-	lastblocknr = curoff >> BLKBITS;
-	start = offset >> BLKBITS;
-	/* Make sure we don't discard a block while a part of it is still inuse */
-	if ((start << BLKBITS) < offset)
-		start++;
-	if ((start << BLKBITS) > (offset + size))
-		return;
-
-	for (blocknr = start; blocknr < lastblocknr; blocknr++) {
-		binfo = get_blockinfo(dev, blocknr, 0);
-		if (dev->inerror) {
-			break;
-		}
-		if (binfo->device != 0) {
-			pr_debug
-			    ("really discard blocknr %llu at offset %llu size %u\n",
-			     blocknr, offset, size);
-			clear_dev_list(dev, binfo);
-			reset_counters_on_migration(dev, binfo);
-			discard_on_real_device(dev, binfo);
-			memset(binfo, 0, sizeof(struct blockinfo));
-			write_blocklist(dev, blocknr, binfo, WA);
-		}
 	}
 }
 
@@ -1242,7 +1205,7 @@ end_error:
 static void data_migrator(struct work_struct *work)
 {
 	struct tier_device *dev;
-	tier_worker_t *mwork = (tier_worker_t *) work;
+	struct tier_work *mwork = (struct tier_work *) work;
 	struct data_policy *dtapolicy;
 
 	dev = mwork->device;
@@ -1561,6 +1524,7 @@ static int order_devices(struct tier_device *dev)
 	/* Allocate and load */
 	for (i = 0; i < dev->attached_devices; i++) {
 		dev->backdev[i]->devmagic = read_device_magic(dev, i);
+		spin_lock_init(&dev->backdev[i]->magic_lock);
 		if (!dev->backdev[i]->devmagic) {
 			tiererror(dev, "order_devices : alloc failed");
 			goto end_error;
@@ -1670,7 +1634,7 @@ static int tier_register(struct tier_device *dev)
 {
 	int devnr;
 	int ret = 0;
-	tier_worker_t *migrateworker;
+	struct tier_work *migratework;
 	struct devicemagic *magic = dev->backdev[0]->devmagic;
 	struct data_policy *dtapolicy = &magic->dtapolicy;
 	struct request_queue *q;
@@ -1700,14 +1664,16 @@ static int tier_register(struct tier_device *dev)
 	dev->size = dev->nsectors * dev->logical_block_size;
 	pr_info("%s size : %llu\n", dev->devname, dev->size);
 
-	spin_lock_init(&dev->lock);
-	spin_lock_init(&dev->statlock);
 	spin_lock_init(&dev->dbg_lock);
 	bio_list_init(&dev->tier_bio_list);
 
-	/* Get a request queue.*/
-	q = blk_alloc_queue(GFP_KERNEL);
-	if (!q) {
+	if (!(dev->bio_task = mempool_create_slab_pool(32, 
+						bio_task_cache)) ||
+	    !(dev->bio_meta = mempool_create_kmalloc_pool(32, 
+						sizeof(struct bio_meta))) ||
+	    !(btier_wq = alloc_workqueue("kbtier", WQ_MEM_RECLAIM, 0)) ||
+	    !(q = blk_alloc_queue(GFP_KERNEL))) {
+		pr_err("Memory allocation failed in tier_register \n");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -1719,14 +1685,16 @@ static int tier_register(struct tier_device *dev)
 	if (0 != ret)
 		goto out;
 
-	init_waitqueue_head(&dev->tier_event);
+	//init_waitqueue_head(&dev->tier_event);
 	init_waitqueue_head(&dev->migrate_event);
 	init_waitqueue_head(&dev->aio_event);
 
 	dev->cacheentries = 0;
 	dev->migrate_verbose = 0;
 	dev->stop = 0;
-	dev->iotype = RANDOM;
+	//dev->iotype = RANDOM;
+
+	spin_lock_init(&dev->io_stat_lock);
 
 	atomic_set(&dev->migrate, 0);
 	atomic_set(&dev->commit, 0);
@@ -1735,7 +1703,7 @@ static int tier_register(struct tier_device *dev)
 	atomic_set(&dev->curfd, 2);
 	atomic_set(&dev->mgdirect.direct, 0);
 	mutex_init(&dev->tier_ctl_mutex);
-	mutex_init(&dev->qlock);
+	init_rwsem(&dev->qlock);
 
 	/* Set queue make_request_fn */
 	blk_queue_make_request(q, tier_make_request);
@@ -1771,9 +1739,8 @@ static int tier_register(struct tier_device *dev)
 
 	/*
 	 * And the gendisk structure.
+	 * We support 256 (kernel default) partitions.
 	 */
-
-	/* We support 256 (kernel default) partitions */
 	dev->gd = alloc_disk(DISK_MAX_PARTS);
 	if (!dev->gd)
 		goto out_unregister;
@@ -1785,25 +1752,25 @@ static int tier_register(struct tier_device *dev)
 	set_capacity(dev->gd, dev->nsectors * (dev->logical_block_size / 512));
 	dev->gd->queue = q;
 
-	dev->tier_thread = kthread_create(tier_thread, dev, dev->devname);
-	if (IS_ERR(dev->tier_thread)) {
-		pr_err("Failed to create kernel thread\n");
-		ret = PTR_ERR(dev->tier_thread);
+	migratework = kzalloc(sizeof(*migratework), GFP_KERNEL);
+	if (!migratework) {
+		pr_err("Failed to allocate memory for migratework\n");
+		ret = -ENOMEM;
 		goto out_unregister;
 	}
-	wake_up_process(dev->tier_thread);
-
-	migrateworker = kzalloc(sizeof(tier_worker_t), GFP_KERNEL);
-	if (!migrateworker) {
-		pr_err("Failed to allocate memory for migrateworker\n");
-		goto out_unregister;
-	}
-	migrateworker->device = dev;
+	migratework->device = dev;
 	dev->managername = as_sprintf("%s-manager", dev->devname);
 	dev->aioname = as_sprintf("%s-aio", dev->devname);
-	dev->migration_queue = create_workqueue(dev->managername);
-	INIT_WORK((struct work_struct *)migrateworker, data_migrator);
-	queue_work(dev->migration_queue, (struct work_struct *)migrateworker);
+	dev->migration_wq = alloc_workqueue(dev->managername, 
+					       WQ_MEM_RECLAIM | WQ_UNBOUND, 1);
+	if (!dev->migration_wq) {
+		pr_err("Unable to create migration workqueue for %s\n",
+			dev->managername);
+		ret = -ENOMEM;
+		goto out_unregister;
+	}
+	INIT_WORK((struct work_struct *)migratework, data_migrator);
+	queue_work(dev->migration_wq, (struct work_struct *)migratework);
 
 	init_timer(&dev->migrate_timer);
 	dev->migrate_timer.data = (unsigned long)dev;
@@ -1896,12 +1863,14 @@ static void tier_deregister(struct tier_device *dev)
 	if (dev->active) {
 		dev->stop = 1;
 		wake_up(&dev->migrate_event);
-		destroy_workqueue(dev->migration_queue);
-		kthread_stop(dev->tier_thread);
+		if (dev->btier_wq)
+			destroy_workqueue(dev->btier_wq);
+		if (dev->migration_wq)
+			destroy_workqueue(dev->migration_wq);
+		//kthread_stop(dev->tier_thread);
 		wake_up(&dev->aio_event);
 		tier_sysfs_exit(dev);
 		mutex_destroy(&dev->tier_ctl_mutex);
-		mutex_destroy(&dev->qlock);
 		del_timer_sync(&dev->migrate_timer);
 		del_gendisk(dev->gd);
 		put_disk(dev->gd);
@@ -1924,6 +1893,10 @@ static void tier_deregister(struct tier_device *dev)
 			kfree(dev->backdev[i]);
 		}
 		kfree(dev->backdev);
+		if (dev->bio_task)
+			mempool_destroy(dev->bio_task);
+		if (dev->bio_meta)
+			mempool_destroy(dev->bio_meta);
 		kfree(dev);
 		dev = NULL;
 	}
@@ -2436,19 +2409,31 @@ static struct miscdevice _tier_misc = {
 static int __init tier_init(void)
 {
 	int r;
+
+	if (tier_request_init())
+		goto end_nomem;
+
 	/* First register out control device */
 	pr_info("version    : %s\n", TIER_VERSION);
+
 	r = misc_register(&_tier_misc);
 	if (r) {
 		pr_err("misc_register failed for control device");
-		return r;
+		goto end_register_err;
 	}
+
 	/*
 	 * Alloc our device names
 	 */
 	r = init_devicenames();
 	mutex_init(&ioctl_mutex);
+
 	return r;
+end_register_err:
+	tier_request_exit();
+	return r;
+end_nomem:
+	return -ENOMEM;
 }
 
 static void __exit tier_exit(void)
@@ -2460,6 +2445,9 @@ static void __exit tier_exit(void)
 
 	if (misc_deregister(&_tier_misc) < 0)
 		pr_err("misc_deregister failed for tier control device");
+
+	tier_request_exit();
+
 	kfree(devicenames);
 	mutex_destroy(&ioctl_mutex);
 }

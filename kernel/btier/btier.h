@@ -4,9 +4,12 @@
 #ifdef __KERNEL__
 #define pr_fmt(fmt) "btier: " fmt
 #include <linux/bio.h>
+#include <linux/slab.h>
+#include <linux/mempool.h>
 #include <linux/blkdev.h>
 #include <linux/spinlock.h>
 #include <linux/mutex.h>
+#include <linux/rwsem.h>
 #include <linux/file.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -23,7 +26,8 @@
 #include <linux/err.h>
 #include <linux/scatterlist.h>
 #include <linux/workqueue.h>
-#include <linux/rbtree.h>
+#include <linux/completion.h>
+//#include <linux/rbtree.h>
 #include <linux/miscdevice.h>
 #include <linux/delay.h>
 #include <linux/falloc.h>
@@ -31,10 +35,10 @@
 #include <linux/version.h>
 #include <linux/sysfs.h>
 #include <linux/device.h>
-#include <linux/socket.h>
-#include <linux/in.h>
-#include <linux/net.h>
-#include <linux/inet.h>
+//#include <linux/socket.h>
+//#include <linux/in.h>
+//#include <linux/net.h>
+//#include <linux/inet.h>
 #include <asm/div64.h>
 #else
 typedef unsigned long long u64;
@@ -124,16 +128,17 @@ typedef unsigned long u32;
 #define MAX_STAT_DECAY 500000	/* Loose 5% hits per walk when we have reached the max */
 #ifndef MAX_PERFORMANCE
 enum states {
-	IDLE = 0,
-	BIOREAD = 1,
-	VFSREAD = 2,
-	VFSWRITE = 4,
-	BIOWRITE = 8,
-	WAITAIOPENDING = 16,
-	PRESYNC = 32,
-	PREBINFO = 64,
-	PREALLOCBLOCK = 128,
-	DISCARD = 512
+	IDLE		= 0,
+	BIOREAD		= 1,
+	VFSREAD		= 2,
+	VFSWRITE	= 4,
+	BIOWRITE	= 8,
+	BIO		= 16,
+	WAITAIOPENDING  = 32,
+	PRESYNC		= 64,
+	PREBINFO	= 128,
+	PREALLOCBLOCK	= 256,
+	DISCARD		= 512
 };
 #endif
 
@@ -187,10 +192,27 @@ struct fd_s {
 #ifdef __KERNEL__
 
 struct bio_task {
-	atomic_t pending;
+	//atomic_t pending;
 	struct bio *parent_bio;
+	struct bio bio;        /* the cloned bio */
 	struct tier_device *dev;
-        int in_one;
+	/*Holds the type of IO random or sequential*/
+	int iotype;
+        //int in_one;
+};
+
+struct bio_meta {
+	struct work_struct work;
+	struct completion event;
+	struct tier_device *dev;
+	struct bio *parent_bio;
+	struct bio bio;        /* the cloned bio */
+	int ret;
+	u64 offset;
+	unsigned int size;
+	unsigned flush:1;
+	unsigned discard:1;
+	//unsigned int device;
 };
 
 typedef struct {
@@ -227,6 +249,7 @@ struct backing_device {
 	u64 usedoffset;
 	unsigned int dirty;
 	struct devicemagic *devmagic;
+	spinlock_t magic_lock;
 	struct kobject *ex_kobj;
 	struct blockinfo **blocklist;
 	u8 *bitlist;
@@ -261,19 +284,21 @@ struct tier_device {
 	struct mutex tier_ctl_mutex;
 	u64 size;
 	u64 blocklistsize;
-	spinlock_t lock;
-	spinlock_t statlock;
-	spinlock_t usage_lock;
 	spinlock_t dbg_lock;
+
 	struct gendisk *gd;
 	/* Data migration work queue*/
-	struct workqueue_struct *migration_queue;
-	struct task_struct *tier_thread;
+	struct workqueue_struct *migration_wq;
+	//struct task_struct *tier_thread;
 	struct bio_list tier_bio_list;
 	struct request_queue *rqueue;
+	mempool_t *bio_task;
+	mempool_t *bio_meta;
+
 	char *devname;
 	char *managername;
 	char *aioname;
+
 	atomic_t migrate;
 	atomic_t aio_pending;
 	atomic_t wqlock;
@@ -283,20 +308,25 @@ struct tier_device {
 	unsigned int commit_interval;
 	int barrier;
 	int stop;
-	/*Holds the type of IO random or sequential*/
-	int iotype;
+
+	/* 
+	 * io_stat_lock is used protect lastblocknr, insequence,
+	 * and stats. 
+	 */
+	spinlock_t io_stat_lock;
 	/*Last blocknr written or read*/
 	u64 lastblocknr;
-	u64 resumeblockwalk;
 	/*Incremented if current blocknr == lastblocknr -1 or +1 */
 	unsigned int insequence;
+	struct tier_stats stats;
+
+	u64 resumeblockwalk;
 	u64 cacheentries;
-	struct mutex qlock;
-	wait_queue_head_t tier_event;
+	struct rw_semaphore qlock;
+	//wait_queue_head_t tier_event; used to wake up tier_thread by make_request, deleted.
 	wait_queue_head_t migrate_event;
 	wait_queue_head_t aio_event;
 	struct timer_list migrate_timer;
-	struct tier_stats stats;
 	struct migrate_direct mgdirect;
 	int migrate_verbose;
 	int ptsync;
@@ -312,10 +342,12 @@ struct tier_device {
 	char zero_buf[PAGE_SIZE];
 };
 
-typedef struct {
+struct tier_work{
 	struct work_struct work;
 	struct tier_device *device;
-} tier_worker_t;
+};
+
+extern struct workqueue_struct *btier_wq;
 
 int get_chunksize(struct block_device *);
 struct blockinfo *get_blockinfo(struct tier_device *, u64, int);
@@ -329,7 +361,8 @@ int allocate_dev(struct tier_device *dev, u64 blocknr,
 			struct blockinfo *binfo, int device);
 void tiererror(struct tier_device *dev, char *msg);
 int tier_sync(struct tier_device *dev);
-void tier_discard(struct tier_device *dev, u64 offset, unsigned int size);
+void discard_on_real_device(struct tier_device *dev,
+				   struct blockinfo *binfo);
 
 void free_bitlists(struct tier_device *);
 void resize_tier(struct tier_device *);

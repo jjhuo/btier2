@@ -252,11 +252,11 @@ static ssize_t tier_attr_resize_store(struct tier_device *dev,
 {
 	if ('1' != buf[0])
 		return s;
-	mutex_lock(&dev->qlock);
+	down_write(&dev->qlock);
 	free_bitlists(dev);
 	resize_tier(dev);
 	load_bitlists(dev);
-	mutex_unlock(&dev->qlock);
+	up_write(&dev->qlock);
 	return s;
 }
 
@@ -305,6 +305,7 @@ static ssize_t tier_attr_sequential_landing_store(struct tier_device *dev,
 	int landdev;
 	int res;
 	char *cpybuf;
+	struct backing_device *backdev = dev->backdev[0];
 
 	cpybuf = null_term_buf(buf, s);
 	if (!cpybuf)
@@ -316,7 +317,11 @@ static ssize_t tier_attr_sequential_landing_store(struct tier_device *dev,
 		goto end_error;
 	if (landdev < 0)
 		goto end_error;
-	dev->backdev[0]->devmagic->dtapolicy.sequential_landing = landdev;
+
+	spin_lock(&backdev->magic_lock);
+	backdev->devmagic->dtapolicy.sequential_landing = landdev;
+	spin_unlock(&backdev->magic_lock);
+
 	kfree(cpybuf);
 	return s;
 
@@ -442,11 +447,11 @@ static ssize_t tier_attr_migration_policy_store(struct tier_device *dev,
 	res = sscanf(a, "%u", &hit_collecttime);
 	if (res != 1)
 		goto end_error;
-	mutex_lock(&dev->qlock);
+	down_write(&dev->qlock);
 	dev->backdev[devicenr]->devmagic->dtapolicy.max_age = max_age;
 	dev->backdev[devicenr]->devmagic->dtapolicy.hit_collecttime =
 	    hit_collecttime;
-	mutex_unlock(&dev->qlock);
+	up_write(&dev->qlock);
 	kfree(cpybuf);
 	return s;
 
@@ -472,14 +477,14 @@ static ssize_t tier_attr_migration_interval_store(struct tier_device *dev,
 		if (interval <= 0)
 			return -ENOMSG;
 		dtapolicy->migration_disabled = 1;
-		mutex_lock(&dev->qlock);
+		down_write(&dev->qlock);
 		dtapolicy->migration_interval = interval;
 		if (!dtapolicy->migration_disabled)
 			mod_timer(&dev->migrate_timer,
 				  jiffies +
 				  msecs_to_jiffies(dtapolicy->migration_interval
 						   * 1000));
-		mutex_unlock(&dev->qlock);
+		up_write(&dev->qlock);
 		dtapolicy->migration_disabled = curstate;
 	} else
 		s = -ENOMSG;
@@ -518,7 +523,7 @@ static ssize_t tier_attr_internals_show(struct tier_device *dev, char *buf)
 	iopending =
 	    as_sprintf("async random ios pending     : %i\n",
 		       atomic_read(&dev->aio_pending));
-	if (mutex_is_locked(&dev->qlock))
+	if (rwsem_is_locked(&dev->qlock))
 		qlock = as_sprintf("main mutex                   : locked\n");
 	else
 		qlock = as_sprintf("main mutex                   : unlocked\n");
@@ -628,8 +633,15 @@ static ssize_t tier_attr_resize_show(struct tier_device *dev, char *buf)
 static ssize_t tier_attr_sequential_landing_show(struct tier_device *dev,
 						 char *buf)
 {
-	return sprintf(buf, "%i\n",
-		       dev->backdev[0]->devmagic->dtapolicy.sequential_landing);
+	struct backing_device *backdev = dev->backdev[0];
+	int len;
+
+	spin_lock(&backdev->magic_lock);
+	len = sprintf(buf, "%i\n",
+		      dev->backdev[0]->devmagic->dtapolicy.sequential_landing);
+	spin_unlock(&backdev->magic_lock);
+
+	return len;
 }
 
 static ssize_t tier_attr_migrate_verbose_show(struct tier_device *dev,
@@ -684,14 +696,26 @@ static ssize_t tier_attr_migration_interval_show(struct tier_device *dev,
 
 static ssize_t tier_attr_numwrites_show(struct tier_device *dev, char *buf)
 {
-	return sprintf(buf, "sequential %llu random %llu\n",
-		       dev->stats.seq_writes, dev->stats.rand_writes);
+	int len;
+
+	spin_lock(&dev->io_stat_lock);
+	len = sprintf(buf, "sequential %llu random %llu\n",
+		      dev->stats.seq_writes, dev->stats.rand_writes);
+	spin_unlock(&dev->io_stat_lock);
+
+	return len;
 }
 
 static ssize_t tier_attr_numreads_show(struct tier_device *dev, char *buf)
 {
-	return sprintf(buf, "sequential %llu random %llu\n",
-		       dev->stats.seq_reads, dev->stats.rand_reads);
+	int len;
+
+	spin_lock(&dev->io_stat_lock);
+	len = sprintf(buf, "sequential %llu random %llu\n",
+		      dev->stats.seq_reads, dev->stats.rand_reads);
+	spin_unlock(&dev->io_stat_lock);
+
+	return len;
 }
 
 static ssize_t tier_attr_device_usage_show(struct tier_device *dev, char *buf)
@@ -726,6 +750,8 @@ static ssize_t tier_attr_device_usage_show(struct tier_device *dev, char *buf)
 		devblocks =
 		    (dev->backdev[i]->endofdata -
 		     dev->backdev[i]->startofdata) >> BLKBITS;
+		
+		spin_lock(&dev->backdev[i]->magic_lock);
 		dev->backdev[i]->devmagic->average_reads =
 		    dev->backdev[i]->devmagic->total_reads / devblocks;
 		dev->backdev[i]->devmagic->average_writes =
@@ -739,6 +765,7 @@ static ssize_t tier_attr_device_usage_show(struct tier_device *dev, char *buf)
 		     dev->backdev[i]->devmagic->total_reads,
 		     dev->backdev[i]->devmagic->total_writes);
 		lines[i + 1] = line;
+		spin_unlock(&dev->backdev[i]->magic_lock);
 	}
 	msg = as_strarrcat(lines, i + 1);
 	if (!msg) {
