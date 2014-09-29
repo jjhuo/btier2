@@ -5,6 +5,7 @@
 #define pr_fmt(fmt) "btier: " fmt
 #include <linux/bio.h>
 #include <linux/slab.h>
+#include <linux/gfp.h>
 #include <linux/mempool.h>
 #include <linux/blkdev.h>
 #include <linux/spinlock.h>
@@ -201,39 +202,41 @@ struct bio_task {
         //int in_one;
 };
 
-struct bio_meta {
-	struct work_struct work;
-	struct completion event;
-	struct tier_device *dev;
-	struct bio *parent_bio;
-	struct bio bio;        /* the cloned bio */
-	int ret;
-	u64 offset;
-	unsigned int size;
-	unsigned flush:1;
-	unsigned discard:1;
-	//unsigned int device;
-};
-
 typedef struct {
 	struct file *fp;
 	mm_segment_t fs;
 } file_info_t;
 
 /*
- * This structure has same members as physical_blockinfo, other than the lock,
- * the order of members is intended to remove unaligned memory access on 64
- * bit machine;
- * The addition of the lock won't increase memory, due to kmalloc paddings, 
- * but adding any new member later will almost double the size of blocklist. 
+ * This structure has same members as physical_blockinfo, other than the
+ * reserved, the order of members is intended to remove unaligned memory
+ * access on 64 bit machine;
+ * The addition of reserved won't increase memory, due to kmalloc paddings, 
+ * but adding any one more member later will double its actual size. 
  */
 struct blockinfo {
-	spinlock_t lock;
+	u32 reserved;
 	unsigned int device;
 	u64 offset;
 	time_t lastused;
 	unsigned int readcount;
 	unsigned int writecount;
+};
+
+struct bio_meta {
+	struct work_struct work;
+	struct completion event;
+	struct tier_device *dev;
+	struct bio *parent_bio;
+	struct bio bio;        /* the cloned bio */
+	struct blockinfo *binfo;
+	int ret;
+	u64 offset;
+	u64 blocknr;
+	unsigned int size;
+	unsigned flush:1;
+	unsigned discard:1;
+	unsigned allocate:1;
 };
 
 struct backing_device {
@@ -245,23 +248,24 @@ struct backing_device {
 	u64 startofbitlist;
 	u64 startofblocklist;
 	u64 bitbufoffset;
-	u64 free_offset;
+	atomic64_t free_offset;
 	u64 usedoffset;
 	unsigned int dirty;
 	struct devicemagic *devmagic;
 	spinlock_t magic_lock;
-	struct kobject *ex_kobj;
 	struct blockinfo **blocklist;
 	u8 *bitlist;
+	/* dev_alloc_lock, protects bitlist, usedoffset and free_offset*/
+	spinlock_t dev_alloc_lock;
 	unsigned int ra_pages;
 	struct block_device *bdev;
 };
 
 struct tier_stats {
-	u64 seq_reads;
-	u64 rand_reads;
-	u64 seq_writes;
-	u64 rand_writes;
+	atomic64_t seq_reads;
+	atomic64_t rand_reads;
+	atomic64_t seq_writes;
+	atomic64_t rand_writes;
 };
 
 struct migrate_direct {
@@ -272,27 +276,32 @@ struct migrate_direct {
 
 struct tier_device {
 	struct list_head list;
+
 	int major_num;
 	int tier_device_number;
 	int active;
 	int attached_devices;
+
 	int (*ioctl) (struct tier_device *, int cmd, u64 arg);
+
 	u64 nsectors;
 	unsigned int logical_block_size;
 	struct backing_device **backdev;
 	struct block_device *tier_device;
-	struct mutex tier_ctl_mutex;
 	u64 size;
 	u64 blocklistsize;
+	/* block lock for per block meta data*/
+	struct mutex *block_lock;
 	spinlock_t dbg_lock;
 
 	struct gendisk *gd;
 	/* Data migration work queue*/
 	struct workqueue_struct *migration_wq;
-	//struct task_struct *tier_thread;
-	struct bio_list tier_bio_list;
 	struct request_queue *rqueue;
+
+	/* mempool for bio_task data structure*/
 	mempool_t *bio_task;
+	/* mempool for bio_meta data structure*/
 	mempool_t *bio_meta;
 
 	char *devname;
@@ -302,44 +311,40 @@ struct tier_device {
 	atomic_t migrate;
 	atomic_t aio_pending;
 	atomic_t wqlock;
-	atomic_t commit;
-	atomic_t curfd;
+
 	int debug_state;
-	unsigned int commit_interval;
 	int barrier;
 	int stop;
 
-	/* 
-	 * io_stat_lock is used protect lastblocknr, insequence,
-	 * and stats. 
-	 */
-	spinlock_t io_stat_lock;
+	/*io_seq_lock is used to protect lastblocknr and insequence*/
+	spinlock_t io_seq_lock;
 	/*Last blocknr written or read*/
 	u64 lastblocknr;
 	/*Incremented if current blocknr == lastblocknr -1 or +1 */
 	unsigned int insequence;
+
 	struct tier_stats stats;
 
 	u64 resumeblockwalk;
-	u64 cacheentries;
 	struct rw_semaphore qlock;
-	//wait_queue_head_t tier_event; used to wake up tier_thread by make_request, deleted.
 	wait_queue_head_t migrate_event;
 	wait_queue_head_t aio_event;
 	struct timer_list migrate_timer;
 	struct migrate_direct mgdirect;
 	int migrate_verbose;
+
 	int ptsync;
 	int discard_to_devices;
 	int discard;
 	int writethrough;
+
 	/* Where do we initially store sequential IO */
 	int inerror;
+
 	/* The blocknr that the user can retrieve info for via sysfs*/
 	u64 user_selected_blockinfo;
 	int user_selected_ispaged;
 	unsigned int users;
-	char zero_buf[PAGE_SIZE];
 };
 
 struct tier_work{

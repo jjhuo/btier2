@@ -228,7 +228,11 @@ static int mark_offset_as_used(struct tier_device *dev, int device, u64 offset)
 	ret =
 	    vfs_fsync_range(backdev->fds, backdev->startofbitlist + boffset, 1,
 			    FSMODE);
+
+	spin_lock(&backdev->dev_alloc_lock);
 	backdev->bitlist[boffset] = allocated;
+	spin_unlock(&backdev->dev_alloc_lock);
+
 	return ret;
 }
 
@@ -241,12 +245,20 @@ static void clear_dev_list(struct tier_device *dev, struct blockinfo *binfo)
 
 	offset = binfo->offset - backdev->startofdata;
 	boffset = offset >> BLKBITS;
+
 	tier_file_write(dev, binfo->device - 1,
 			&unallocated, 1, backdev->startofbitlist + boffset);
+
+	vfs_fsync_range(backdev->fds, backdev->startofbitlist + boffset, 1,
+			    FSMODE);
+
+	spin_lock(&backdev->dev_alloc_lock);
 	if (backdev->free_offset > boffset)
 		backdev->free_offset = boffset;
+
 	if (backdev->bitlist)
 		backdev->bitlist[boffset] = unallocated;
+	spin_unlock(&backdev->dev_alloc_lock);
 }
 
 int allocate_dev(struct tier_device *dev, u64 blocknr,
@@ -254,12 +266,15 @@ int allocate_dev(struct tier_device *dev, u64 blocknr,
 {
 	struct backing_device *backdev = dev->backdev[device];
 	u8 *buffer = NULL;
-	u64 cur = 0;
+	u64 boffset, cur = 0;
 	u64 relative_offset = 0;
 	int ret = 0;
 	unsigned int buffercount;
+	u8 allocated = ALLOCATED;
 
-	cur = backdev->free_offset >> 12;
+	spin_lock(&backdev->dev_alloc_lock);
+
+	cur = backdev->free_offset >> PAGE_SHIFT;
 
 	/* The bitlist may be loaded into memory or be NULL if not */
 	while (0 == binfo->device && (cur * PAGE_SIZE) < backdev->bitlistsize) {
@@ -276,14 +291,18 @@ int allocate_dev(struct tier_device *dev, u64 blocknr,
 				    backdev->endofdata) {
 					goto end_exit;
 				} else {
-					binfo->device = device + 1;
-					ret = mark_offset_as_used(dev, device,
-								  relative_offset);
-					if (0 != ret)
-						goto end_exit;
 					backdev->free_offset =
 					    relative_offset >> BLKBITS;
 					backdev->usedoffset = binfo->offset;
+					boffset = relative_offset >> BLKBITS;
+					backdev->bitlist[boffset] = allocated;
+					spin_unlock(&backdev->dev_alloc_lock);
+
+					binfo->device = device + 1;
+					ret = mark_offset_as_used(dev, device,
+								relative_offset);
+					
+					return ret;
 				}
 			}
 			buffercount++;
@@ -293,6 +312,7 @@ int allocate_dev(struct tier_device *dev, u64 blocknr,
 		cur++;
 	}
 end_exit:
+	spin_unlock(&backdev->dev_alloc_lock);
 	return ret;
 }
 
@@ -307,7 +327,13 @@ static int tier_file_write(struct tier_device *dev, unsigned int device,
 	set_debug_info(dev, VFSWRITE);
 	bw = vfs_write(backdev->fds, buf, len, &pos);
 	clear_debug_info(dev, VFSWRITE);
-	backdev->dirty = 1;
+
+	/*
+	 * there is no need to set dirty, since all meta operations are 
+	 * synchronized with actual device. 
+	 */
+	//backdev->dirty = 1;
+
 	set_fs(old_fs);
 	if (likely(bw == len))
 		return 0;
@@ -686,7 +712,7 @@ static void recover_journal(struct tier_device *dev, int device)
 }
 
 void discard_on_real_device(struct tier_device *dev,
-				   struct blockinfo *binfo)
+			    struct blockinfo *binfo)
 {
 	struct block_device *bdev;
 	sector_t sector, nr_sects, endsector;
@@ -741,24 +767,31 @@ static void reset_counters_on_migration(struct tier_device *dev,
 	struct backing_device *backdev = dev->backdev[binfo->device - 1];
 	struct devicemagic *devmagic = backdev->devmagic;
 	u64 devblocks = backdev->devicesize >> BLKBITS;
+	u64 new_writes, new_reads;
 
 	if (dev->migrate_verbose) {
 		pr_info("block %u-%llu reads %u writes %u\n", binfo->device,
 			binfo->offset, binfo->readcount, binfo->writecount);
-		pr_info("devmagic->total_writes was %llu\n",
+		/*pr_info("devmagic->total_writes was %llu\n",
 			backdev->devmagic->total_writes);
 		pr_info("devmagic->total_reads was %llu\n",
-			backdev->devmagic->total_reads);
+			backdev->devmagic->total_reads);*/
 	}
+
+	spin_lock(&backdev->magic_lock);
 	devmagic->total_reads -= binfo->readcount;
 	devmagic->total_writes -= binfo->writecount;
-	devmagic->average_writes = devmagic->total_writes / devblocks;
-	devmagic->average_reads = devmagic->total_reads / devblocks;
+	new_writes = devmagic->average_writes =
+		     devmagic->total_writes / devblocks;
+	new_reads  = devmagic->average_reads =
+		     devmagic->total_reads / devblocks;
+	spin_unlock(&backdev->magic_lock);
+
 	if (dev->migrate_verbose) {
 		pr_info("devmagic->total_writes is now %llu\n",
-			devmagic->total_writes);
+			new_writes);
 		pr_info("devmagic->total_reads is now %llu\n",
-			devmagic->total_reads);
+			new_reads);
 	}
 	return;
 }
@@ -1030,8 +1063,6 @@ static int load_blocklist(struct tier_device *dev)
 		}
 
 		backdev->blocklist[curblock] = binfo;
-
-		spin_lock_init(&binfo->lock);
 
 		res = tier_file_read(dev, 0,
 				     &phy_binfo,
@@ -1525,6 +1556,7 @@ static int order_devices(struct tier_device *dev)
 	for (i = 0; i < dev->attached_devices; i++) {
 		dev->backdev[i]->devmagic = read_device_magic(dev, i);
 		spin_lock_init(&dev->backdev[i]->magic_lock);
+		spin_lock_init(&dev->backdev[i]->dev_alloc_lock);
 		if (!dev->backdev[i]->devmagic) {
 			tiererror(dev, "order_devices : alloc failed");
 			goto end_error;
@@ -1630,6 +1662,41 @@ static void register_new_device_size(struct tier_device *dev)
 	kobject_uevent(&disk_to_dev(dev->gd)->kobj, KOBJ_CHANGE);
 }
 
+static int alloc_blocklock(struct tier_device *dev)
+{
+	unsigned int size;
+	u64 i, blocks = dev->size >> BLKBITS;
+
+	size = blocks * sizeof(struct mutex);
+
+	dev->block_lock = vzalloc(size);
+
+	if (!dev->block_lock)
+		return -ENOMEM;
+
+	for (i = 0; i < blocks; i++) {
+		mutex_init(dev->block_lock + i);
+	}
+
+	return 0;
+}
+
+static void free_blocklock(struct tier_device *dev)
+{
+	unsigned int size;
+	u64 i, blocks = dev->size >> BLKBITS;
+
+	if (!dev->block_lock)
+		return;
+
+	for (i = 0; i < blocks; i++) {
+		mutex_destroy(dev->block_lock + i);
+	}
+
+	vfree(dev->block_lock);
+	dev->block_lock = NULL;
+}
+
 static int tier_register(struct tier_device *dev)
 {
 	int devnr;
@@ -1665,13 +1732,14 @@ static int tier_register(struct tier_device *dev)
 	pr_info("%s size : %llu\n", dev->devname, dev->size);
 
 	spin_lock_init(&dev->dbg_lock);
-	bio_list_init(&dev->tier_bio_list);
+	spin_lock_init(&dev->io_seq_lock);
 
 	if (!(dev->bio_task = mempool_create_slab_pool(32, 
 						bio_task_cache)) ||
 	    !(dev->bio_meta = mempool_create_kmalloc_pool(32, 
 						sizeof(struct bio_meta))) ||
 	    !(btier_wq = alloc_workqueue("kbtier", WQ_MEM_RECLAIM, 0)) ||
+	    alloc_blocklock(dev) ||
 	    !(q = blk_alloc_queue(GFP_KERNEL))) {
 		pr_err("Memory allocation failed in tier_register \n");
 		ret = -ENOMEM;
@@ -1689,20 +1757,18 @@ static int tier_register(struct tier_device *dev)
 	init_waitqueue_head(&dev->migrate_event);
 	init_waitqueue_head(&dev->aio_event);
 
-	dev->cacheentries = 0;
 	dev->migrate_verbose = 0;
 	dev->stop = 0;
 	//dev->iotype = RANDOM;
 
-	spin_lock_init(&dev->io_stat_lock);
-
 	atomic_set(&dev->migrate, 0);
-	atomic_set(&dev->commit, 0);
 	atomic_set(&dev->wqlock, 0);
 	atomic_set(&dev->aio_pending, 0);
-	atomic_set(&dev->curfd, 2);
 	atomic_set(&dev->mgdirect.direct, 0);
-	mutex_init(&dev->tier_ctl_mutex);
+	dev->stats.seq_reads   = ATOMIC64_INIT(0);
+	dev->stats.rand_reads  = ATOMIC64_INIT(0);
+	dev->stats.seq_writes  = ATOMIC64_INIT(0);
+	dev->stats.rand_writes = ATOMIC64_INIT(0);
 	init_rwsem(&dev->qlock);
 
 	/* Set queue make_request_fn */
@@ -1862,28 +1928,37 @@ static void tier_deregister(struct tier_device *dev)
 	int i;
 	if (dev->active) {
 		dev->stop = 1;
-		wake_up(&dev->migrate_event);
+		dev->active = 0;
+
+		/* wait all current requests to finish */
+		if (0 != atomic_read(&dev->aio_pending))
+			wait_event(dev->aio_event, 0 == atomic_read(&dev->aio_pending));
 		if (dev->btier_wq)
 			destroy_workqueue(dev->btier_wq);
+
+		wake_up(&dev->migrate_event);
 		if (dev->migration_wq)
 			destroy_workqueue(dev->migration_wq);
-		//kthread_stop(dev->tier_thread);
-		wake_up(&dev->aio_event);
+
 		tier_sysfs_exit(dev);
-		mutex_destroy(&dev->tier_ctl_mutex);
 		del_timer_sync(&dev->migrate_timer);
 		del_gendisk(dev->gd);
 		put_disk(dev->gd);
 		blk_cleanup_queue(dev->rqueue);
+
 		pr_info("deregister device %s\n", dev->devname);
 		unregister_blkdev(dev->major_num, dev->devname);
 		list_del(&dev->list);
+
 		kfree(dev->managername);
 		kfree(dev->aioname);
 		release_devicename(dev->devname);
+
 		tier_sync(dev);
 		free_blocklist(dev);
 		free_bitlists(dev);
+		free_blocklock(dev);
+
 		for (i = 0; i < dev->attached_devices; i++) {
 			mark_device_clean(dev, i);
 			filp_close(dev->backdev[i]->fds, NULL);
@@ -1892,11 +1967,14 @@ static void tier_deregister(struct tier_device *dev)
 			kfree(dev->backdev[i]->devmagic);
 			kfree(dev->backdev[i]);
 		}
+
 		kfree(dev->backdev);
+
 		if (dev->bio_task)
 			mempool_destroy(dev->bio_task);
 		if (dev->bio_meta)
 			mempool_destroy(dev->bio_meta);
+
 		kfree(dev);
 		dev = NULL;
 	}

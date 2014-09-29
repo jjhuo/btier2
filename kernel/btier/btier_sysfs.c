@@ -698,10 +698,9 @@ static ssize_t tier_attr_numwrites_show(struct tier_device *dev, char *buf)
 {
 	int len;
 
-	spin_lock(&dev->io_stat_lock);
 	len = sprintf(buf, "sequential %llu random %llu\n",
-		      dev->stats.seq_writes, dev->stats.rand_writes);
-	spin_unlock(&dev->io_stat_lock);
+		      atomic64_read(&dev->stats.seq_writes),
+		      atomic64_read(&dev->stats.rand_writes));
 
 	return len;
 }
@@ -710,10 +709,9 @@ static ssize_t tier_attr_numreads_show(struct tier_device *dev, char *buf)
 {
 	int len;
 
-	spin_lock(&dev->io_stat_lock);
 	len = sprintf(buf, "sequential %llu random %llu\n",
-		      dev->stats.seq_reads, dev->stats.rand_reads);
-	spin_unlock(&dev->io_stat_lock);
+		      atomic64_read(&dev->stats.seq_reads),
+		      atomic64_read(&dev->stats.rand_reads));
 
 	return len;
 }
