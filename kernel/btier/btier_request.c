@@ -566,12 +566,14 @@ static void tiered_dev_access(struct tier_device *dev, struct bio_task *bt)
 				bio_chain(split, bio);
 				start = (binfo->offset + offset_in_blk + done)
 					>> 9;
-				mutex_unlock(dev->block_lock + cur_blk);
 				tier_submit_bio(dev, device, split, start);
 			}
 
 			done += cur_chunk;
 		} while (done != size_in_blk);
+
+		/* splitting in current block is done, go to next block.*/
+		mutex_unlock(dev->block_lock + cur_blk);
 	}
 
 	return;

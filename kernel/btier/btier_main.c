@@ -15,7 +15,7 @@
 
 #define TRUE 1
 #define FALSE 0
-#define TIER_VERSION "1.3.5"
+#define TIER_VERSION "2.0.0"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Mark Ruijter");
@@ -439,12 +439,17 @@ static int tier_bio_io_paged(struct tier_device *dev, unsigned int device,
         unsigned int chunksize;
         unsigned int max_hwsectors_kb;
 
-        max_hwsectors_kb = queue_max_hw_sectors(q);
-        chunksize = max_hwsectors_kb << 9;
-        if (chunksize < PAGE_SIZE)
-            chunksize = PAGE_SIZE;
-        if (chunksize > BLKSIZE)
-            chunksize = BLKSIZE;
+	/* temporary fix to work with raid devices, will change later */
+	if (q->merge_bvec_fn) {
+		chunksize = PAGE_SIZE;
+	} else {
+		max_hwsectors_kb = queue_max_hw_sectors(q);
+		chunksize = max_hwsectors_kb << 9;
+		if (chunksize < PAGE_SIZE)
+		    chunksize = PAGE_SIZE;
+		if (chunksize > BLKSIZE)
+		    chunksize = BLKSIZE;
+	}
 
 	for (done = 0; done < size; done += chunksize) {
                 if (chunksize < (size - done)) 
