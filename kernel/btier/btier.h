@@ -61,7 +61,7 @@ typedef unsigned long u32;
 #define BLKSIZE 1048576		/*Moving smaller blocks then 4M around
 				   will lead to fragmentation */
 #define BLKBITS 20		/*Adjust when changing BLKSIZE */
-#define PAGE_SHIFT 12		/*4k page size */
+//#define PAGE_SHIFT 12		/*4k page size */
 #define TIER_NAME_SIZE     64	/* Max lenght of the filenames */
 #define TIER_SET_FD        0xFE00
 #define TIER_SET_DEVSZ     0xFE03
@@ -358,6 +358,9 @@ extern struct workqueue_struct *btier_wq;
 extern struct kmem_cache *bio_task_cache;
 
 unsigned int get_chunksize(struct block_device *bdev, struct bio *bio);
+int tier_moving_block(struct tier_device *dev,
+		      struct blockinfo *olddevice,
+		      struct blockinfo *newdevice);
 struct blockinfo *get_blockinfo(struct tier_device *, u64, int);
 void tier_make_request(struct request_queue *q, struct bio *old_bio);
 void tier_request_exit(void);
