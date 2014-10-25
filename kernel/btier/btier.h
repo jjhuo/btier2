@@ -29,7 +29,6 @@
 #include <linux/scatterlist.h>
 #include <linux/workqueue.h>
 #include <linux/completion.h>
-//#include <linux/rbtree.h>
 #include <linux/miscdevice.h>
 #include <linux/delay.h>
 #include <linux/falloc.h>
@@ -37,10 +36,6 @@
 #include <linux/version.h>
 #include <linux/sysfs.h>
 #include <linux/device.h>
-//#include <linux/socket.h>
-//#include <linux/in.h>
-//#include <linux/net.h>
-//#include <linux/inet.h>
 #include <asm/div64.h>
 #else
 typedef unsigned long long u64;
@@ -315,7 +310,6 @@ struct tier_device {
 	atomic_t wqlock;
 
 	int debug_state;
-	int barrier;
 	int stop;
 
 	/*io_seq_lock is used to protect lastblocknr and insequence*/
@@ -334,11 +328,10 @@ struct tier_device {
 	struct timer_list migrate_timer;
 	struct migrate_direct mgdirect;
 	int migrate_verbose;
+	struct bio *moving_bio;
 
-	int ptsync;
 	int discard_to_devices;
 	int discard;
-	int writethrough;
 
 	/* Where do we initially store sequential IO */
 	int inerror;

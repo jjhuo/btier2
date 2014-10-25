@@ -7,6 +7,14 @@
  *
  * Redistributable under the terms of the GNU GPL.
  * Author: Mark Ruijter, mruijter@gmail.com
+ *
+ *
+ * Btier2: bio make_request path rewrite to handle parallel bio requests, new
+ * per-block fine grained locking mechanism; tier data moving rewrite to work 
+ * with other make_request devices better, such as mdraid10; VFS mode removed,
+ * aio_thread and tier_thread removed; passing sync to all underlying devices, 
+ * and etc. Copyright (C) 2014 Jianjian Huo, <samuel.huo@gmail.com>
+ * 
  */
 
 #include "btier.h"
@@ -720,12 +728,14 @@ static int copyblock(struct tier_device *dev, struct blockinfo *newdevice,
 	newdevice->readcount = 0;
 	newdevice->writecount = 0;
 	newdevice->lastused = get_seconds();
+
 	if (newdevice->device == olddevice->device) {
 		pr_err
 		    ("copyblock : refuse to migrate block to current device %u -> %u\n",
 		     newdevice->device, olddevice->device);
 		return 0;
 	}
+
 	allocate_dev(dev, curblock, newdevice, devicenr);
 
 	/* No space on the device to copy to is not an error */
@@ -741,7 +751,7 @@ static int copyblock(struct tier_device *dev, struct blockinfo *newdevice,
 	write_blocklist(dev, curblock, newdevice, WA);
 	sync_device(dev, newdevice->device - 1);
 	clean_blocklist_journal(dev, olddevice->device - 1);
-	vfree(buffer);
+
 	if (dev->migrate_verbose)
 		pr_info
 		    ("migrated blocknr %llu from device %u-%llu to device %u-%llu\n",
@@ -751,7 +761,6 @@ static int copyblock(struct tier_device *dev, struct blockinfo *newdevice,
 
 end_error:
 	pr_err("copyblock: read failed, cancelling operation\n");
-	vfree(buffer);
 	return 0;
 }
 
@@ -1505,12 +1514,6 @@ static int order_devices(struct tier_device *dev)
 		dtapolicy->sequential_landing = 0;
 	if (0 == dtapolicy->migration_interval)
 		dtapolicy->migration_interval = MIGRATE_INTERVAL;
-	if (!dev->writethrough) {
-		dev->writethrough = dev->backdev[0]->devmagic->writethrough;
-	} else {
-		pr_info("write-through (sync) io selected\n");
-		dev->backdev[0]->devmagic->writethrough = dev->writethrough;
-	}
 
 	if (!clean)
 		repair_bitlists(dev);
@@ -1636,9 +1639,6 @@ static int tier_register(struct tier_device *dev)
 		return -1;
 	dev->active = 1;
 	
-	/* Barriers can not be used when we work in ram only */
-	dev->barrier = 1;
-	
 	if (0 == dev->logical_block_size)
 		dev->logical_block_size = 512;
 	if (dev->logical_block_size != 512 &&
@@ -1716,8 +1716,7 @@ static int tier_register(struct tier_device *dev)
 	q->limits.discard_alignment	= BLKSIZE;
 	set_bit(QUEUE_FLAG_NONROT,      &q->queue_flags);
 	set_bit(QUEUE_FLAG_DISCARD,     &q->queue_flags);
-	if (dev->barrier)
-		blk_queue_flush(q, REQ_FLUSH | REQ_FUA);
+	blk_queue_flush(q, REQ_FLUSH | REQ_FUA);
 
 	/*
 	 * Get registered.
@@ -1825,7 +1824,7 @@ static int tier_set_fd(struct tier_device *dev, struct fd_s *fds,
 	backdev->ra_pages = file->f_ra.ra_pages;
 
 	if (file->f_flags & O_SYNC) {
-		dev->writethrough = 1;
+		//dev->writethrough = 1;
 		/* Store this persistent on unload */
 		file->f_flags ^= O_SYNC;
 	}

@@ -3,11 +3,7 @@
  * make_request to handle block read and write requests.
  * Copyright (C) 2014 Mark Ruijter, <mruijter@gmail.com>
  * 
- * Btier2: bio make_request path rewrite to handle parallel bio requests, new
- * per-block fine grained locking mechanism; tier data moving rewrite to work 
- * with other make_request devices better, such as mdraid10; VFS mode removed,
- * aio_thread and tier_thread removed; passing sync to all underlying devices, 
- * and etc. Copyright (C) 2014 Jianjian Huo, <samuel.huo@gmail.com>
+ * Btier2 changes, Copyright (C) 2014 Jianjian Huo, <samuel.huo@gmail.com>
  * Get_chunksize function is from bcache.
  * 
  */
