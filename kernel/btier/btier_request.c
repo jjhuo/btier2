@@ -98,6 +98,10 @@ static int tier_moving_io(struct tier_device *dev,
 	bio->bi_iter.bi_idx = 0;
         bio->bi_iter.bi_bvec_done = 0;
 
+	/*pr_info("tier_moving_io, rw:%d, start sector:%lld, device:%d\n", rw,
+					bio->bi_iter.bi_sector,
+					binfo->device);*/
+
 	do {
 		cur_chunk = get_chunksize(bdev, bio);
 		if (cur_chunk > (BLKSIZE - done))
@@ -124,7 +128,7 @@ static int tier_moving_io(struct tier_device *dev,
 		} else {
 			bio_chain(split, bio);
 			start = (binfo->offset + done) >> 9;
-			tier_submit_bio(dev, binfo->device, split, start);
+			tier_submit_bio(dev, binfo->device - 1, split, start);
 		}
 
 		done += cur_chunk;
