@@ -362,6 +362,7 @@ int get_opts(int argc, char *argv[])
 {
 
 	int c, ret = 0;
+        int has_devices = 0;
 
 	while ((c = getopt(argc, argv, "VBcd:bhcsf:m:z:")) != -1)
 		switch (c) {
@@ -377,10 +378,13 @@ int get_opts(int argc, char *argv[])
 		case 'f':
 			if (optopt == 'f')
 				printf
-				    ("Option -%c requires a lessfs configuration file as argument.\n",
+				    ("Option -%c requires a device or file as argument.\n",
 				     optopt);
-			else
+			else {
 				parse_datafile(optarg);
+                                has_devices = 1;
+			}
+
 			break;
 		case 'd':
 			if (optopt == 'd')
@@ -389,6 +393,7 @@ int get_opts(int argc, char *argv[])
 				     optopt);
 			else {
 				mkoptions.device = optarg;
+				has_devices = 1;
 			}
 			break;
 		case 's':
@@ -423,6 +428,10 @@ int get_opts(int argc, char *argv[])
 		default:
 			abort();
 		}
+        if (!has_devices) {
+            printf("btier_setup requires at least one device to be specified with -f\n");
+            ret = -1;
+        }
 	printf("\n");
 	return ret;
 }
