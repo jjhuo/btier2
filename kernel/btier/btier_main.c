@@ -1716,6 +1716,7 @@ static int tier_register(struct tier_device *dev)
 	q->limits.discard_alignment	= BLKSIZE;
 	set_bit(QUEUE_FLAG_NONROT,      &q->queue_flags);
 	set_bit(QUEUE_FLAG_DISCARD,     &q->queue_flags);
+	dev->discard = 1;
 	blk_queue_flush(q, REQ_FLUSH | REQ_FUA);
 
 	/*

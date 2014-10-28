@@ -357,9 +357,11 @@ void tier_discard(struct tier_device *dev, u64 offset, unsigned int size)
 
 	if (!dev->discard)
 		return;
+
 	curoff = offset + size;
 	lastblocknr = curoff >> BLKBITS;
 	start = offset >> BLKBITS;
+
 	/* Make sure we don't discard a block while a part of it is still inuse */
 	if ((start << BLKBITS) < offset)
 		start++;
@@ -373,6 +375,7 @@ void tier_discard(struct tier_device *dev, u64 offset, unsigned int size)
 			mutex_unlock(dev->block_lock + blocknr);
 			break;
 		}
+
 		if (binfo->device != 0) {
 			pr_debug
 			    ("really discard blocknr %llu at offset %llu size %u\n",
@@ -383,6 +386,7 @@ void tier_discard(struct tier_device *dev, u64 offset, unsigned int size)
 			memset(binfo, 0, sizeof(struct blockinfo));
 			write_blocklist(dev, blocknr, binfo, WD);
 		}
+
 		mutex_unlock(dev->block_lock + blocknr);
 
 		/* in case it's a huge discard */
