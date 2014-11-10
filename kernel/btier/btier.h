@@ -23,7 +23,6 @@
 #include <linux/vmalloc.h>
 #include <linux/genhd.h>
 #include <linux/blkdev.h>
-#include <linux/hdreg.h>
 #include <linux/crypto.h>
 #include <linux/err.h>
 #include <linux/scatterlist.h>
@@ -31,7 +30,6 @@
 #include <linux/completion.h>
 #include <linux/miscdevice.h>
 #include <linux/delay.h>
-#include <linux/falloc.h>
 #include <linux/kthread.h>
 #include <linux/version.h>
 #include <linux/sysfs.h>
@@ -197,11 +195,6 @@ struct bio_task {
 	int iotype;
         //int in_one;
 };
-
-typedef struct {
-	struct file *fp;
-	mm_segment_t fs;
-} file_info_t;
 
 /*
  * This structure has same members as physical_blockinfo, other than the
